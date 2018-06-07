@@ -19,9 +19,9 @@
 	is in a different location.
 .NOTES
 	Author:  Bryan Greener
-    Email:   bryan_greener@denso-diam.com
-    Company: DENSO DMMI
-    Date:    2018-06-07
+	Email:   bryan_greener@denso-diam.com
+	Company: DENSO DMMI
+	Date:    2018-06-07
 #>
 function Update-DriveILT{
 	[Cmdletbinding()]
