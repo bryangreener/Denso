@@ -1,3 +1,28 @@
+<#
+.SYNOPSIS
+	Updates Item Level Targeting in backup GPOs
+.DESCRIPTION
+	This function takes backed up gpo files and updates the item level
+	targeting in the Drives.xml files.
+.PARAMETER BackupPath
+	Full path to folder containing backed up GPOs.
+.PARAMETER KeyPath
+	Unused parameter that was originally going to be a path to a
+	csv key file which would be used to translate old groups to new ones.
+.PARAMETER NewDomain
+	FQDN of domain that GPOs will be updated to reflect.
+.PARAMETER OldDomani
+	FQDN of old domain that GPOs were backed up from.
+.PARAMETER DrivesPath
+	Optional parameter that points to the Drives.xml file within each gpo
+	folder. This can be overridden in cases where the Drives.xml file
+	is in a different location.
+.NOTES
+	Author:  Bryan Greener
+    Email:   bryan_greener@denso-diam.com
+    Company: DENSO DMMI
+    Date:    2018-06-07
+#>
 function Update-DriveILT{
 	[Cmdletbinding()]
 	param(
