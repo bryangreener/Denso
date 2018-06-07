@@ -43,28 +43,7 @@ function Update-DriveILT{
 							for($i=0; $i -lt $t.Count; $i++){
 								Write-Host "$($i+1)) $($t[$i])"
 							}
-						<#
-						.SYNOPSIS
-						Short description
-						
-						.DESCRIPTION
-						Long description
-						
-						.PARAMETER MigrationTableFullPath
-						Parameter description
-						
-						.PARAMETER MigtableKeyCSVPath
-						Parameter description
-						
-						.PARAMETER local
-						Parameter description
-						
-						.EXAMPLE
-						An example
-						
-						.NOTES
-						General notes
-						#>selection = Read-Host "Enter # of Replacement"
+							$selection = Read-Host "Enter # of Replacement"
 							if(	$selection -eq "" -or 
 								$selection -lt 1 -or 
 								$selection -gt $t.Count){
@@ -117,3 +96,8 @@ function Update-DriveILT{
 		Write-Host -ForegroundColor Yellow "caught exception: $e at $line"
 	}
 }
+$p = "C:\gpobackupfolder"
+$k = "C:\key.csv"
+$s = "newdomain.com"
+$o = "olddomain.com"
+Update-DriveILT $p $k $s $o
