@@ -1,0 +1,7 @@
+H:\Project\Scripting\GPOReader\GPOReader\bin\Debug\GPOReader.exe.config
+H:\Project\Scripting\GPOReader\GPOReader\bin\Debug\GPOReader.exe
+H:\Project\Scripting\GPOReader\GPOReader\bin\Debug\GPOReader.pdb
+H:\Project\Scripting\GPOReader\GPOReader\obj\Debug\GPOReader.csprojAssemblyReference.cache
+H:\Project\Scripting\GPOReader\GPOReader\obj\Debug\GPOReader.csproj.CoreCompileInputs.cache
+H:\Project\Scripting\GPOReader\GPOReader\obj\Debug\GPOReader.exe
+H:\Project\Scripting\GPOReader\GPOReader\obj\Debug\GPOReader.pdb
