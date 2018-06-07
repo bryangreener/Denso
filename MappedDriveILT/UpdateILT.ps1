@@ -34,6 +34,13 @@ function Update-DriveILT{
 				if($child.sid){
 					$trimmedGroup = $child.name.Split('\')[-1]
 					$t = Get-ADGroup -Filter "name -like '*$trimmedGroup'" -Server $NewDomain
+					if(!$t){
+						Write-Host "ERROR QUERYING AD FOR:" -ForegroundColor Yellow
+						$child | select * | %{ Write-Host $_.name -ForegroundColor Red }
+						Write-Host "GPO INFORMATION:" -ForegroundColor Magenta
+						Write-Host "PATH:  $folder" -ForegroundColor Red
+						$child | select * | %{ $_.ParentNode | select * | %{ $_.ParentNode | select * | %{ Write-Host "DRIVE:" $_.name -ForegroundColor Red }}}
+					}
 					$selection = 0
 					if(	$t.Count -gt 1 -and
 						!$savedReplacements[$child.name]){
@@ -96,8 +103,8 @@ function Update-DriveILT{
 		Write-Host -ForegroundColor Yellow "caught exception: $e at $line"
 	}
 }
-$p = "C:\gpobackupfolder"
+$p = "C:\gpobackup"
 $k = "C:\key.csv"
-$s = "newdomain.com"
-$o = "olddomain.com"
+$s = "new.net"
+$o = "old.com"
 Update-DriveILT $p $k $s $o
