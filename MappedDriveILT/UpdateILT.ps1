@@ -19,9 +19,9 @@
 	is in a different location.
 .NOTES
 	Author:  Bryan Greener
-	Email:   bryan_greener@denso-diam.com
-	Company: DENSO DMMI
-	Date:    2018-06-07
+    Email:   bryan_greener@denso-diam.com
+    Company: DENSO DMMI
+    Date:    2018-06-07
 #>
 function Update-DriveILT{
 	[Cmdletbinding()]
@@ -59,9 +59,12 @@ function Update-DriveILT{
 				if($child.sid){
 					$trimmedGroup = $child.name.Split('\')[-1]
 					$t = Get-ADGroup -Filter "name -like '*$trimmedGroup'" -Server $NewDomain
+					if(!$t){ #failsafe in case is full group name
+						$t = get-ADGroup -Identity $trimmedGroup -Server $NewDomain
+					}
 					if(!$t){
-						Write-Host "ERROR QUERYING AD FOR:" -ForegroundColor Yellow
-						$child | select * | %{ Write-Host $_.name -ForegroundColor Red }
+						Write-Host "ERROR QUERYING $($NewDomain.ToUpper()) FOR:" -ForegroundColor Yellow
+						$child | select * | %{ Write-Host $_.name.split('\')[-1] -ForegroundColor Red }
 						Write-Host "GPO INFORMATION:" -ForegroundColor Magenta
 						Write-Host "PATH:  $folder" -ForegroundColor Red
 						$child | select * | %{ $_.ParentNode | select * | %{ $_.ParentNode | select * | %{ Write-Host "DRIVE:" $_.name -ForegroundColor Red }}}
@@ -70,36 +73,93 @@ function Update-DriveILT{
 					if(	$t.Count -gt 1 -and
 						!$savedReplacements[$child.name]){
 						while(	$selection -lt 1 -or 
-								$selection -gt $t.Count){
+								$selection -gt $t.Count+2){
 							Write-Host "Attempting to replace $($child.name)."
 							for($i=0; $i -lt $t.Count; $i++){
 								Write-Host "$($i+1)) $($t[$i])"
 							}
+							Write-Host "$($t.Count+1)) MANUAL ENTRY"
+							Write-Host "$($t.Count+2)) IGNORE ENTRY" 
 							$selection = Read-Host "Enter # of Replacement"
 							if(	$selection -eq "" -or 
 								$selection -lt 1 -or 
-								$selection -gt $t.Count){
+								$selection -gt $t.Count+2){
 								Write-Host "INVALID SELECTION" -ForegroundColor Yellow
 							}
 						}
 						$saveSelection = ""
-						$selection = [int32]$selection - 1
-						$san = $t[$selection].SamAccountName
-						while("y","n" -notcontains $saveSelection.ToLower()){
-							$saveSelection = Read-Host "Would you like the program to remember this replacement? (y/n)"
-							if($saveSelection.ToLower() -eq "y"){
-								$savedReplacements.Add($child.name, @("$nDomain\$san", [string]($t[$selection].SID.Value)))
-								Write-Host "Selection saved. You will not be prompted for future occurances of this value." -ForegroundColor Green
-								Write-Host "`tOLD VALUE: $($child.name)"
-								Write-Host "`tNEW VALUE: $nDomain\$san"
-							}elseif($saveSelection.ToLower() -eq "n"){
-								Write-Host "Selection not saved. You will continue to be prompted each time for this replacement." -ForegroundColor Red
-							}else{
-								Write-Host "INVALID SELECTION" -ForegroundColor Yellow
+						if($selection -eq $t.Count+1){ #MANUAL REPLACEMENT
+							$entry = Read-Host "Enter the Name of the new user/group"
+							$res = Get-ADGroup -Filter "name -like '*$entry'" -Server $NewDomain
+							if($res.Count -gt 1){
+								$selection = 0
+								while( 	$selection -lt 1 -or
+										$selection -gt $res.Count){
+									Write-Host "Users/Groups Similar to Entry:"
+									for($i = 0; $i -lt $res.Count; $i++){
+										Write-Host "$($i+1)) $($res[$i])"
+									}
+									$selection = Read-Host "Enter # of Replacement"
+									if( $selection -eq "" -or
+										$selection -lt 1 -or
+										$selection -gt $res.Count){
+											Write-Host "INVALID SELECTION" -ForegroundColor Yellow
+									}
+								}
+								
+							}
+							$selection = [int32]$selection - 1
+							$san = $res[$selection].SamAccountName
+							while("y","n" -notcontains $saveSelection.ToLower()){
+								$saveSelection = Read-Host "Would you like the program to remember this replacement? (y/n)"
+								if($saveSelection.ToLower() -eq "y"){
+									$savedReplacements.Add($child.name, @("$nDomain\$san", [string]($t[$selection].SID.Value)))
+									Write-Host "Selection saved. You will not be prompted for future occurances of this value." -ForegroundColor Green
+									Write-Host "`tOLD VALUE: $($child.name)"
+									Write-Host "`tNEW VALUE: $nDomain\$san"
+								}elseif($saveSelection.ToLower() -eq "n"){
+									Write-Host "Selection not saved. You will continue to be prompted each time for this replacement." -ForegroundColor Red
+								}else{
+									Write-Host "INVALID SELECTION" -ForegroundColor Yellow
+								}
+							}
+							$child.name = "$nDomain\$san"
+							$child.sid = [string]($res[$selection].SID.Value)
+						}
+						elseif($selection -eq $t.Count+2){ # IGNORE CASE
+							while("y","n" -notcontains $saveSelection.ToLower()){
+								$saveSelection = Read-Host "Would you like the program to remember this choice? (y/n)"
+								if($saveSelection.ToLower() -eq "y"){
+									$savedReplacements.Add($child.name, @([string]($t[$selection].SID.Value), [string]($t[$selection].SID.Value)))
+									Write-Host "Selection saved. You will not be prompted for future occurances of this value." -ForegroundColor Green
+									Write-Host "`tOLD VALUE: $($child.name)"
+									Write-Host "`tNEW VALUE: $($child.name)"
+								}elseif($saveSelection.ToLower() -eq "n"){
+									Write-Host "Selection not saved. You will continue to be prompted each time for this replacement." -ForegroundColor Red
+								}else{
+									Write-Host "INVALID SELECTION" -ForegroundColor Yellow
+								}
 							}
 						}
-						$child.name = "$nDomain\$san"
-						$child.sid = [string]($t[$selection].SID.Value)
+						else{
+							$selection = [int32]$selection - 1
+							$san = $t[$selection].SamAccountName
+							while("y","n" -notcontains $saveSelection.ToLower()){
+								$saveSelection = Read-Host "Would you like the program to remember this replacement? (y/n)"
+								if($saveSelection.ToLower() -eq "y"){
+									$savedReplacements.Add($child.name, @("$nDomain\$san", [string]($t[$selection].SID.Value)))
+									Write-Host "Selection saved. You will not be prompted for future occurances of this value." -ForegroundColor Green
+									Write-Host "`tOLD VALUE: $($child.name)"
+									Write-Host "`tNEW VALUE: $nDomain\$san"
+								}elseif($saveSelection.ToLower() -eq "n"){
+									Write-Host "Selection not saved. You will continue to be prompted each time for this replacement." -ForegroundColor Red
+								}else{
+									Write-Host "INVALID SELECTION" -ForegroundColor Yellow
+								}
+							}
+							$child.name = "$nDomain\$san"
+							$child.sid = [string]($t[$selection].SID.Value)
+						}
 					}elseif($savedReplacements[$child.name]){
 						$tempname = $child.name
 						$child.name = $savedReplacements[$tempname][0]
