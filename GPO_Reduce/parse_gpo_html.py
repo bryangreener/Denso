@@ -2,8 +2,19 @@
 # COMPANY: Denso
 # DATE: 2018-07-10
 # See readme in repo root for license info.
+
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
+from xml.etree import ElementTree as ET
+from pathlib import Path
+
+import argparse
+
+#### TODO
+#    Update HTML generator to output prettier page.
+#    Fix parsing of nested tables.
+#    Clean up code and comment more.
+
 
 # Tree object used to create n-ary tree
 class Tree(object):
@@ -15,6 +26,7 @@ class Tree(object):
         self.is_leaf = False
         self.children = []
         self.table = []
+        self.comparisons = []
         self.path = None
 
 # Initialize tree and call recursive build function
@@ -78,14 +90,7 @@ def build_tree_util(root, leaf_list):
                 child.children[-1].name = child.children[-1].data.string
         build_tree_util(child, leaf_list)
 
-# Print tree structure for testing and validation of tree building process.
-#https://stackoverflow.com/questions/1649027/how-do-i-print-out-a-tree-structure
-def print_tree(root, indent, last):
-    print("%s +- %s" % (indent, root.name))
-    indent += "   " if last else "|  "
-    for i in range(len(root.children)):
-        print_tree(root.children[i], indent, i == len(root.children)-1)
-    
+# Element-wise comparison between both trees going both directions.
 def compare_trees(leaf_list1, leaf_list2):
     comparisons = []
     for i, ii in enumerate(leaf_list1):
@@ -120,37 +125,147 @@ def compare_trees(leaf_list1, leaf_list2):
                     if r not in temp:
                         temp.append(r)
                 comparisons.append([ii, temp])
+                ii.comparisons = comparisons[-1]
     return comparisons
 
-def print_comparison(comparisons):
-    for i in comparisons:
-        print([x for x in reversed(i[0].path)])
-        for j in i[1:]:
-            for k in j:
-                print("\t", k)
-        print("_____________________________________________________________")
+# Print comparison results for each leaf node.
+def print_comparison(comparisons, outfile, quiet=False):
+    with open(outfile, 'a') as file:
+        file.write('================\n'
+                   'COMPARISONS ONLY\n'
+                   '================\n')
+        for i in comparisons:
+            if not quiet:
+                print([x for x in reversed(i[0].path)])
+            file.write('{}\n'.format([x for x in reversed(i[0].path)]))
+            for j in i[1:]:
+                for k in j:
+                    if not quiet:
+                        print("\t", k)
+                    file.write('\t{}\n'.format(k))
+            if not quiet:
+                print('')
+            file.write('\n')
 
-# Edit with two filenames to compare
-url1 = "file:GPO1.html"
-url2 = "file:GPO2.html"
+# Print tree structure for testing and validation of tree building process.
+# Modified from:
+# stackoverflow.com/questions/1649027/how-do-i-print-out-a-tree-structure
+def print_tree(root, indent, last, outfile, quiet=False):
+    if not quiet: #quiet switch specified
+        print("%s +- %s" % (indent, root.name))
+    with open(outfile, 'a') as file:
+        file.write("%s +- %s\n" % (indent, root.name)) #out to file
+    if root.is_leaf:
+        for i in root.comparisons[1:]:
+            for j in i:
+                if not quiet: #quiet switch specified
+                    print("%s    -> %s" % (indent, j))
+                with open(outfile, 'a') as file:
+                    file.write("%s    -> %s\n" % (indent, j)) # out to file
+    indent += "   " if last else "|  "
+    for i in range(len(root.children)):
+        print_tree(root.children[i], indent, i == len(root.children)-1, 
+                   outfile, quiet)
 
-response1 = urlopen(url1).read()
-soup1 = BeautifulSoup(response1, 'lxml').find('body')
-
-response2 = urlopen(url2).read()
-soup2 = BeautifulSoup(response2, 'lxml').find('body')
-
-# Lists used to store all leaf nodes. Makes life easier in comparison.
-leaf_list1 = []
-leaf_list2 = []
-
-tree1, leaf_list1 = build_tree(soup1, url1, leaf_list1)
-tree2, leaf_list2 = build_tree(soup2, url2, leaf_list2)
-
-#used for testing. prints structure.
-#print_tree(tree1, '', True)
-#print_tree(tree2, '', True)
-
-comparison = compare_trees(leaf_list1, leaf_list2)
-print_comparison(comparison)
+# Generate an html page to display results in a readable format.
+def generate_html(root, outfile):
+    html = ET.Element('html')
+    head = ET.Element('head')
+    body = ET.Element('body')
+    link = ET.Element('link', attrib={'rel': 'stylesheet', 
+                                      'type': 'text/css',
+                                      'href': 'theme.css'})
+    html.append(head)
+    head.append(link)
+    html.append(body)
     
+    generate_html_util(root, body, html, outfile)
+
+def generate_html_util(root, tag, html, outfile):
+    for child in root.children:
+        div = ET.Element('div', attrib={'class': 'node',
+                                        'id': child.name})
+        tag.append(div)
+        span = ET.Element('span', attrib={'class': 'sectionTitle'})
+        div.append(span)
+        span.text = child.name
+        
+        if child.table:
+            table = ET.Element('table', attrib={'class': 'info'})
+            for row in child.table:
+                tr = ET.Element('tr')
+                for col in row:
+                    td = ET.Element('td')
+                    td.text = col
+                    tr.append(td)
+                if child.comparisons:
+                    row_idx = [x[0] for x in child.comparisons[-1]].index(row[0])
+                    td = ET.Element('td')
+                    td.text = str(child.comparisons[-1][row_idx][-1])
+                    tr.append(td)
+                table.append(tr)
+            div.append(table)
+        
+        generate_html_util(child, div, html, outfile)
+    ET.ElementTree(html).write(outfile, encoding='utf8', method='html')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Compare two GPOs.')
+    parser.add_argument('gpos', nargs=2, 
+                        help='Two GPO .html file paths to compare.')
+    parser.add_argument('-o', '--output', default='comparison_output.txt',
+                        help='Filepath in which to save results.')
+    parser.add_argument('-q', '--quiet', action='store_true',
+                        help='Boolean switch to suppress command line output.')
+    args = parser.parse_args()
+    # Handle input file validation
+    if Path(args.gpos[0]).exists():
+        url1 = "file:" + args.gpos[0]
+    else:
+        raise OSError('GPO file {} does not exist.'.format(args.gpos[0]))
+    if Path(args.gpos[1]).exists():
+        url2 = "file:" + args.gpos[1]
+    else:
+        raise OSError('GPO file {} does not exist.'.format(args.gpos[1]))
+    # Handle output file validation
+    outfile = args.output
+    try:
+        with open(outfile, 'w') as file:
+            file.write('')
+    except IOError:
+        print('Output file error for {}.'.format(outfile))
+    
+    response1 = urlopen(url1).read()
+    soup1 = BeautifulSoup(response1, 'lxml').find('body')
+    
+    response2 = urlopen(url2).read()
+    soup2 = BeautifulSoup(response2, 'lxml').find('body')
+    
+    # Lists used to store all leaf nodes. Makes life easier in comparison.
+    leaf_list1 = []
+    leaf_list2 = []
+    
+    tree1, leaf_list1 = build_tree(soup1, url1, leaf_list1)
+    tree2, leaf_list2 = build_tree(soup2, url2, leaf_list2)
+    
+    comparison = compare_trees(leaf_list1, leaf_list2)
+    # Overwrite file
+    with open(outfile, 'w') as file:
+        file.write('KEY:\n'
+                   '0=Setting doesn\'t exist in second GPO.\n'
+                   '1=Setting is the same in both GPOs.\n'
+                   '2=Setting exists in both GPOs but has different value.\n'
+                   '______________________________________________________\n')
+    print_tree(tree1, '', True, outfile, args.quiet)
+    
+    print_comparison(comparison, outfile, args.quiet)
+    
+    html_outfile = 'html_output.html'
+    try:
+        with open(html_outfile, 'w') as file:
+            file.write('')
+    except IOError:
+        print('HTML Output file error for {}.'.format(html_outfile))
+    
+    generate_html(tree1, html_outfile)
