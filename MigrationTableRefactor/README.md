@@ -1,3 +1,21 @@
+# Migration Table Refactor
+
+This tool procedurally updates values in a saved migrationtable based on input parameters in order to properly migrate GPOs to a new domain environment.
+
+## Built With
+
+* Powershell using VSCode w/ Powershell plugin
+
+## Authors
+
+[Bryan Greener](https://github.com/bryangreener)
+
+## License
+
+This project is not available for distribution. See the [LICENSE.txt](https://github.com/bryangreener/Denso/blob/master/LICENSE.txt) file for details.
+
+
+
 TO RUN:
 In powershell, type the following command:
     C:\> Import-Module MigTab
