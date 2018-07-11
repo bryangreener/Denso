@@ -15,13 +15,13 @@ This tool is ideally run on startup for computers using the versacall system. Th
 This project is not available for distribution. See the [LICENSE.txt](https://github.com/bryangreener/Denso/blob/master/LICENSE.txt) file for details.
 
 
-# How To Run
+### How To Run
 
 In powershell, type the following command to view examples and get more detailed information:
 
 C:\PS> get-help versacall
 
-# Examples
+### Examples
 
 ```
 C:\PS> versacall
@@ -33,7 +33,7 @@ C:\PS> versacall -ComputerName COMPUTER-10
 C:\PS> versacall -ServerIP 127.0.0.1 -PanelID 5
 ```
 
-# Folder Contents
+### Folder Contents
 
 * VersacallOUs.csv
 -	This csv contains separate rows for each computer.
