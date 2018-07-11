@@ -4,7 +4,7 @@ This tool compares two GPO html reports (generated using GPResult) and shows whi
 
 ## Built With
 
-Python 3 using Spyder with Anaconda
+* Python 3 using Spyder with Anaconda
 
 ## Authors
 
