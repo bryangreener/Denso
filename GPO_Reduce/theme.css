@@ -1,0 +1,49 @@
+/* 
+body, table, td, th, and div styling code taken from GPO report CSS
+generated in windows.
+*/
+body {
+	background-color: #FFFFFF;
+	border: 1px solid #666666;
+	color: #000000;
+	font-size: 100%;
+	font-family: MS Shell Dlg;
+	margin: 0, 0, 10px, 0;
+	word-break: normal;
+	word-wrap: break-word;
+}
+
+table {
+	font-size: 100%;
+	table-layout: fixed;
+	width: 100%;
+}
+
+td,
+th {
+	overflow: visible;
+	text-align: left;
+	vertical-align: top;
+	white-space: normal;
+}
+
+div {
+	color: #000000;
+	border: 1px solid #CCCCCC;
+	text-decoration: none;
+	display: block;
+	font-family: MS Shell Dlg;
+	font-size: 100%;
+	font-weight: normal;
+	right: 10px;
+	margin-left:20px;
+	/*text-decoration: underline;*/
+	z-index: 0;
+}
+.info {
+	line-height: 1.6em;
+	padding: 0px, 0px, 0px, 0px;
+	margin: 0px, 0px, 0px, 0px;
+	border: 1px solid #CCCCCC;
+	background: #D9E3EA;
+}
