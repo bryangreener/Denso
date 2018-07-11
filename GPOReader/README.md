@@ -4,7 +4,7 @@ This tool is used to read GPO XML files generated from GPResult and display the 
 
 ## Built With
 
-Python 3 using Spyder with Anaconda
+* Python 3 using Spyder with Anaconda
 
 ## Authors
 
