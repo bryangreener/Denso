@@ -44,13 +44,13 @@ C:\> Update-MigTable C:\temp\mt.migtable C:\temp\key.csv User1,User2,Group1
 ```
 
 ## Folder Contents
-Old Test Scripts
+* Old Test Scripts
     This folder contains test scripts that don't function fully.
 
-MigTab.psm1
+* MigTab.psm1
     This is a powershell module. See the section on how to run this script
     for more information.
 
-SampleKey.csv
+* SampleKey.csv
     This is a sample csv file showing the structure that your csv needs to fit.
 
