@@ -1,6 +1,6 @@
 # GPO Reduction Tool
 
-Tool used to compare two GPO's exported in HTML format to show settings with the same values.
+This tool compares two GPO html reports (generated using GPResult) and shows which GPO settings are duplicates and which are different. This tool is used to reduce the overhead of GPOs by removing any unnecessary settings that would cause replication times between ADs to increase.
 
 ## Built With
 
