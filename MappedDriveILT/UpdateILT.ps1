@@ -56,7 +56,15 @@ function Update-DriveILT{
 				select -ExpandProperty * |
 				ForEach-Object{
 				$child = $_
-				if($child.sid){
+				if(	$child.name -eq 'FilterTerminal' -or
+					$child.name -eq 'FilterRunOnce'){
+					# Do nothing as these are unique tags that are unused.
+				}
+				else{ #For all other cases
+					if(!$child.sid){ # Distinguished Name
+						$child.name = $child.name.Split(',')[0].Split('=')[-1]
+						#$child.name = [string](Get-ADOrganizationalUnit -Filter "name -like '$ou'" -Server $NewDomain).DistinguishedName
+					}
 					$trimmedGroup = $child.name.Split('\')[-1]
 					$t = Get-ADGroup -Filter "name -like '*$trimmedGroup'" -Server $NewDomain
 					if(!$t){ #failsafe in case is full group name
@@ -113,7 +121,8 @@ function Update-DriveILT{
 							while("y","n" -notcontains $saveSelection.ToLower()){
 								$saveSelection = Read-Host "Would you like the program to remember this replacement? (y/n)"
 								if($saveSelection.ToLower() -eq "y"){
-									$savedReplacements.Add($child.name, @("$nDomain\$san", [string]($t[$selection].SID.Value)))
+
+										$savedReplacements.Add($child.name, @("$nDomain\$san", [string]($t[$selection].SID.Value)))
 									Write-Host "Selection saved. You will not be prompted for future occurances of this value." -ForegroundColor Green
 									Write-Host "`tOLD VALUE: $($child.name)"
 									Write-Host "`tNEW VALUE: $nDomain\$san"
@@ -143,11 +152,19 @@ function Update-DriveILT{
 						}
 						else{
 							$selection = [int32]$selection - 1
-							$san = $t[$selection].SamAccountName
+							if($child.sid){
+								$san = $t[$selection].SamAccountName
+							}else{
+								$san = $t[$selection].DistinguishedName
+							}
 							while("y","n" -notcontains $saveSelection.ToLower()){
 								$saveSelection = Read-Host "Would you like the program to remember this replacement? (y/n)"
 								if($saveSelection.ToLower() -eq "y"){
-									$savedReplacements.Add($child.name, @("$nDomain\$san", [string]($t[$selection].SID.Value)))
+									if($child.sid){
+										$savedReplacements.Add($child.name, @("$nDomain\$san", [string]($t[$selection].SID.Value)))
+									}else{
+										$savedReplacements.Add($child.name, @("$san"))
+									}
 									Write-Host "Selection saved. You will not be prompted for future occurances of this value." -ForegroundColor Green
 									Write-Host "`tOLD VALUE: $($child.name)"
 									Write-Host "`tNEW VALUE: $nDomain\$san"
@@ -157,27 +174,24 @@ function Update-DriveILT{
 									Write-Host "INVALID SELECTION" -ForegroundColor Yellow
 								}
 							}
-							$child.name = "$nDomain\$san"
-							$child.sid = [string]($t[$selection].SID.Value)
+							if($child.sid){
+								$child.name = "$nDomain\$san"
+								$child.sid = [string]($t[$selection].SID.Value)
+							}else{
+								$child.name = "$san"
+							}
 						}
 					}elseif($savedReplacements[$child.name]){
 						$tempname = $child.name
 						$child.name = $savedReplacements[$tempname][0]
-						$child.sid = $savedReplacements[$tempname][1]
+						if($child.sid){
+							$child.sid = $savedReplacements[$tempname][1]
+						}
 					}else{
 						$child.name = "$nDomain\$($t.SamAccountName)"
 						$child.sid = [string]($t.SID.Value)
 					}
 				}
-				elseif(	$child.name -eq 'FilterTerminal' -or
-						$child.name -eq 'FilterRunOnce'){
-					#Unique tags that aren't used.
-				}else{
-					$ou = $child.name.Split(',')[0].Split('=')[-1]
-					$child.name = [string](Get-ADOrganizationalUnit -Filter "name -like '$ou'" -Server $NewDomain).DistinguishedName
-				}
-				#}
-				
 			}
 			$f.Save("$folder\$DrivesPath")
 		}
