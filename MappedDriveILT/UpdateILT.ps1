@@ -62,14 +62,15 @@ function Update-DriveILT{
 				}
 				else{ #For all other cases
 					if(!$child.sid){ # Distinguished Name
-						$child.name = $child.name.Split(',')[0].Split('=')[-1]
-						#$child.name = [string](Get-ADOrganizationalUnit -Filter "name -like '$ou'" -Server $NewDomain).DistinguishedName
+                        #$t = get-ADGroup -Identity $child.name -Server $NewDomain
+						#$child.name = $child.name.Split(',')[0].Split('=')[-1]
+						$ou = $child.name.Split(',')[0].Split('=')[-1]
+						$t = [string](Get-ADOrganizationalUnit -Filter "name -like '$ou'" -Server $NewDomain).DistinguishedName
 					}
-					$trimmedGroup = $child.name.Split('\')[-1]
-					$t = Get-ADGroup -Filter "name -like '*$trimmedGroup'" -Server $NewDomain
-					if(!$t){ #failsafe in case is full group name
-						$t = get-ADGroup -Identity $trimmedGroup -Server $NewDomain
-					}
+					else{
+                        $trimmedGroup = $child.name.Split('\')[-1]
+                        $t = Get-ADGroup -Filter "name -like '*$trimmedGroup'" -Server $NewDomain
+                    }
 					if(!$t){
 						Write-Host "ERROR QUERYING $($NewDomain.ToUpper()) FOR:" -ForegroundColor Yellow
 						$child | select * | %{ Write-Host $_.name.split('\')[-1] -ForegroundColor Red }
@@ -188,8 +189,12 @@ function Update-DriveILT{
 							$child.sid = $savedReplacements[$tempname][1]
 						}
 					}else{
-						$child.name = "$nDomain\$($t.SamAccountName)"
-						$child.sid = [string]($t.SID.Value)
+						if($child.sid){
+							$child.name = "$nDomain\$($t.SamAccountName)"
+							$child.sid = [string]($t.SID.Value)
+						}else{
+							$child.name = $t
+						}
 					}
 				}
 			}
