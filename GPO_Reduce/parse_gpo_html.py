@@ -19,20 +19,27 @@ import argparse
 # Tree object used to create n-ary tree
 class Tree(object):
     def __init__(self):
+        # Full HTML of container
         self.data = None
+        # String property of spans
         self.name = None
+        # Full HTML of innermost divs for testing
         self.inner_HTML = None
+        # Tree object for upward mobility in tree
         self.parent = None
         self.is_leaf = False
+        # List of Tree objects
         self.children = []
+        # 2D list of table data
         self.table = []
+        # 2D list of table data comparisons
         self.comparisons = []
+        # List of all parent node names up to root of tree
         self.path = None
 
 # Initialize tree and call recursive build function
-def build_tree(soup, file_name, leaf_list):
-    root = Tree()
-    
+def build_tree(soup, root, leaf_list):
+    # Manually add these entries as they exist in every GPO report.
     c_config = soup.find('span', text='Computer Configuration (Enabled)')
     u_config = soup.find('span', text='User Configuration (Enabled)')
     
@@ -49,7 +56,6 @@ def build_tree(soup, file_name, leaf_list):
         u_node.name = u_config.string
         u_node.parent = root
         root.children.append(u_node)
-    root.name = file_name
     
     build_tree_util(root, leaf_list)
     
@@ -59,8 +65,9 @@ def build_tree(soup, file_name, leaf_list):
 def build_tree_util(root, leaf_list):
     for child in root.children:
         content = child.data.parent.find_next_sibling('div', class_='container')
+        siblings = content.next_element.find_next_siblings('div', class_='container')
         # If at leaf node...
-        if not content.next_element.find_next_siblings('div', class_='container'):
+        if not siblings:
             child.is_leaf = True
             # Remove all newline chars from inner_HTML to sanitize environment
             child.inner_HTML = str(content).replace('\n', '')
@@ -73,17 +80,21 @@ def build_tree_util(root, leaf_list):
                 temp_list.append(temp.name)
                 temp = temp.parent
             child.path = temp_list
+            #### FIXME
+            #### Need to account for subtables recursively.
             # Populate table of data at leaf node
-            table = child.data.parent.find_next_sibling('div', class_='container').find('table')
-            if table is not None:
-                for row in table.find_all('tr'):
-                    if row.find_all('th'):
-                        col = row.find_all('th')
-                    else:
-                        col = row.find_all('td')
-                    child.table.append([x.string for x in col])
+            tables = content.find_all('table')
+            child.table.append(tables)
+            for table in tables:
+                if table is not None:
+                    for row in table.find_all('tr'):
+                        if row.find_all('th'):
+                            col = row.find_all('th')
+                        else:
+                            col = row.find_all('td')
+                        child.table.append([x.string for x in col])
         else: #otherwise add child nodes
-            for i in content.next_element.find_next_siblings('div', class_='container'):
+            for i in siblings:
                 child.children.append(Tree())
                 child.children[-1].parent = child
                 child.children[-1].data = i.find_previous_sibling('div').find_next('span', class_='sectionTitle')
@@ -97,35 +108,43 @@ def compare_trees(leaf_list1, leaf_list2):
         for j, jj in enumerate(leaf_list2):
             if ii.path == jj.path: #verify using same setting
                 # Below checks duplicate settings based on rules below
-                #0 = setting doesn't exist in 2
-                #1 = setting is equal in both
-                #2 = setting exists in both but has different value
+                #1 = setting exists in GPO1 but not in GPO2
+                #2 = setting exists in GPO2 but not in GPO1
+                #= = setting is equal in both
+                #! = setting exists in both but has different value
                 results = []
-                for row_i in ii.table:
-                    for row_j in jj.table:
-                        if row_j[0] in [x[0] for x in ii.table]:
-                            if row_j == ii.table[[x[0] for x in ii.table].index(row_j[0])]:
-                                results.append([row_j[0], 1])
+                for row_i in ii.table[1:]:
+                    for row_j in jj.table[1:]:
+                        if row_j[0] in [x[0] for x in ii.table[1:]]:
+                            if row_j == ii.table[1:][[x[0] for x in ii.table[1:]].index(row_j[0])]:
+                                results.append([row_j[0], '='])
+                                update_html(ii.table[0], row_j[0], '=')
                             else:
-                                results.append([row_j[0], 2])
+                                results.append([row_j[0], '!'])
+                                update_html(ii.table[0], row_j[0], '!')
                         else:
-                            results.append([row_j[0], 0])
-                for row_j in jj.table:
-                    for row_i in ii.table:
-                        if row_i[0] in  [x[0] for x in jj.table]:
-                            if row_i == jj.table[[x[0] for x in jj.table].index(row_i[0])]:
-                                results.append([row_i[0], 1])
+                            results.append([row_j[0], 1])
+                            update_html(jj.table[0], row_j[0], '1')
+                for row_j in jj.table[1:]:
+                    for row_i in ii.table[1:]:
+                        if row_i[0] in  [x[0] for x in jj.table[1:]]:
+                            if row_i == jj.table[1:][[x[0] for x in jj.table[1:]].index(row_i[0])]:
+                                results.append([row_i[0], '='])
+                                update_html(jj.table[0], row_i[0], '=')
                             else:
-                                results.append([row_i[0], 2])
+                                results.append([row_i[0], '!'])
+                                update_html(jj.table[0], row_i[0], '!')
                         else:
-                            results.append([row_i[0], 0])
+                            results.append([row_i[0], 2])
+                            update_html(ii.table[0], row_i[0], 2)
                 # Remove duplicates created by process above
                 temp = []
                 for r in results:
-                    if r not in temp:
+                    if r not in temp and r[0] is not None:
                         temp.append(r)
-                comparisons.append([ii, temp])
-                ii.comparisons = comparisons[-1]
+                if temp:
+                    comparisons.append([ii, temp])
+                    ii.comparisons = comparisons[-1]
     return comparisons
 
 # Print comparison results for each leaf node.
@@ -134,15 +153,19 @@ def print_comparison(comparisons, outfile, quiet=False):
         file.write('================\n'
                    'COMPARISONS ONLY\n'
                    '================\n')
+        # Get longest string in comparisons (used for ljust)
         for i in comparisons:
             if not quiet:
                 print([x for x in reversed(i[0].path)])
             file.write('{}\n'.format([x for x in reversed(i[0].path)]))
-            for j in i[1:]:
-                for k in j:
-                    if not quiet:
-                        print("\t", k)
-                    file.write('\t{}\n'.format(k))
+            max_length = max([x for y in [[[len(str(c)) for c in b] for b in a] for a in i[1:]] for x in y])[0]
+            for j in i[1:][0]:
+                s = j[0]
+                j[0] = j[0].ljust(max_length + 1, '-')
+                if not quiet:
+                    print("\t", '| '.join(str(x) for x in j))
+                file.write('\t{}\n'.format('| '.join(str(x) for x in j)))
+                j[0] = s
             if not quiet:
                 print('')
             file.write('\n')
@@ -157,15 +180,33 @@ def print_tree(root, indent, last, outfile, quiet=False):
         file.write("%s +- %s\n" % (indent, root.name)) #out to file
     if root.is_leaf:
         for i in root.comparisons[1:]:
+            max_length = max([[len(str(x)) for x in y] for y in i])[0]
             for j in i:
+                s = j[0]
+                j[0] = j[0].ljust(max_length + 1, '-')
                 if not quiet: #quiet switch specified
-                    print("%s    -> %s" % (indent, j))
+                    print("%s    -> %s" % 
+                          (indent, '| '.join(str(x) for x in j)))
                 with open(outfile, 'a') as file:
-                    file.write("%s    -> %s\n" % (indent, j)) # out to file
+                    file.write("%s    -> %s\n" % (indent, '| '.join(str(x)for x in j)))
+                j[0] = s
     indent += "   " if last else "|  "
     for i in range(len(root.children)):
         print_tree(root.children[i], indent, i == len(root.children)-1, 
                    outfile, quiet)
+
+def update_html(tables, cell, comparison):
+    for table in tables:
+        for r in table.find_all('tr'):
+            d = [x.string for x in r.find_all('td')]
+            if cell in d:
+                if str(comparison) == '1':
+                    r['style'] = 'background:#EBDEF0'
+                elif str(comparison) == '2':
+                    r['style'] = 'background:#FADBD8'
+                elif str(comparison) == '!':
+                    r['style'] = 'background:#D5F5E3'
+                return
 
 # Generate an html page to display results in a readable format.
 def generate_html(root, outfile):
@@ -237,35 +278,43 @@ if __name__ == '__main__':
         print('Output file error for {}.'.format(outfile))
     
     response1 = urlopen(url1).read()
-    soup1 = BeautifulSoup(response1, 'lxml').find('body')
+    soup1 = BeautifulSoup(response1, 'lxml')
+    body1 = soup1.find('body')
     
     response2 = urlopen(url2).read()
-    soup2 = BeautifulSoup(response2, 'lxml').find('body')
+    soup2 = BeautifulSoup(response2, 'lxml')
+    body2 = soup2.find('body')
     
     # Lists used to store all leaf nodes. Makes life easier in comparison.
     leaf_list1 = []
     leaf_list2 = []
     
-    tree1, leaf_list1 = build_tree(soup1, url1, leaf_list1)
-    tree2, leaf_list2 = build_tree(soup2, url2, leaf_list2)
+    root = Tree()
+    root.name = url1 + ' v ' + url2
+    tree1, leaf_list1 = build_tree(body1, root, leaf_list1)
+    root = Tree()
+    root.name = url2 + ' v ' + url1
+    tree2, leaf_list2 = build_tree(body2, root, leaf_list2)
     
     comparison = compare_trees(leaf_list1, leaf_list2)
     # Overwrite file
     with open(outfile, 'w') as file:
-        file.write('KEY:\n'
-                   '0=Setting doesn\'t exist in second GPO.\n'
-                   '1=Setting is the same in both GPOs.\n'
-                   '2=Setting exists in both GPOs but has different value.\n'
-                   '______________________________________________________\n')
+        file.write('KEY\n'
+                   'GPO1: {}\n'.format(url1) +
+                   'GPO2: {}\n'.format(url2) +
+                   '1: Setting exists in GPO1 but not in GPO2\n'
+                   '2: Setting exists in GPO2 but not in GPO1\n'
+                   '=: Setting is the same in both GPOs\n'
+                   '!: Setting exists in both GPOs but has different values.\n'
+                   '________________________________________________________\n')
     print_tree(tree1, '', True, outfile, args.quiet)
     
     print_comparison(comparison, outfile, args.quiet)
     
-    html_outfile = 'html_output.html'
-    try:
-        with open(html_outfile, 'w') as file:
-            file.write('')
-    except IOError:
-        print('HTML Output file error for {}.'.format(html_outfile))
+    html_out = soup1.prettify('utf-8')
+    with open('updated_{}'.format(args.gpos[0]), 'wb') as file:
+        file.write(html_out)
     
-    generate_html(tree1, html_outfile)
+    html_out = soup2.prettify('utf-8')
+    with open('updated_{}'.format(args.gpos[1]), 'wb') as file:
+        file.write(html_out)
