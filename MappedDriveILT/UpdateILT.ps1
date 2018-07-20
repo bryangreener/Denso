@@ -28,8 +28,6 @@ function Update-DriveILT{
 	param(
 		[Parameter(Mandatory=$True)]
 		[string]$BackupPath,
-		[Parameter(Mandatory=$True)]
-		[string]$KeyPath,
 		[Parameter(mandatory=$True)]
 		[string]$NewDomain,
 		[Parameter(mandatory=$True)]
@@ -207,8 +205,7 @@ function Update-DriveILT{
 		Write-Host -ForegroundColor Yellow "caught exception: $e at $line"
 	}
 }
-$p = "C:\gpobackup"
-$k = "C:\key.csv"
-$s = "new.net"
-$o = "old.com"
-Update-DriveILT $p $k $s $o
+#$p = "path\to\gpo\backup\folders"
+#$s = "new_domain.net"
+#$o = "old_domain.net"
+Update-DriveILT #$p $s $o
