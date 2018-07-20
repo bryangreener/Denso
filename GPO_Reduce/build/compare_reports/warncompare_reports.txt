@@ -1,0 +1,26 @@
+missing module named resource - imported by posix, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named posix - imported by os, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named _posixsubprocess - imported by subprocess, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named org - imported by pickle, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named readline - imported by cmd, code, pdb, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+excluded module named _frozen_importlib - imported by importlib, importlib.abc, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named _frozen_importlib_external - imported by importlib._bootstrap, importlib, importlib.abc, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named _winreg - imported by platform, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named java - imported by platform, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named 'java.lang' - imported by platform, xml.sax._exceptions, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named vms_lib - imported by platform, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named termios - imported by tty, getpass, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named grp - imported by shutil, tarfile, pathlib, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named pwd - imported by posixpath, shutil, tarfile, http.server, webbrowser, netrc, getpass, pathlib, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named 'org.python' - imported by copy, xml.sax, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named _dummy_threading - imported by dummy_threading, H:\Project\Scripting\GPO_Reduce\src\compare_reports.py
+missing module named iconv_codec - imported by bs4.dammit
+missing module named cchardet - imported by bs4.dammit
+missing module named StringIO - imported by six
+missing module named html5lib.treebuilders._base - imported by html5lib.treebuilders, bs4.builder._html5lib
+runtime module named six.moves - imported by html5lib._inputstream, html5lib.filters.sanitizer
+missing module named 'six.moves.urllib' - imported by 'six.moves.urllib'
+missing module named 'genshi.core' - imported by html5lib.treewalkers.genshi
+missing module named genshi - imported by html5lib.treewalkers.genshi
+missing module named datrie - imported by html5lib._trie.datrie
+missing module named _scproxy - imported by urllib.request
