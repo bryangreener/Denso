@@ -89,8 +89,19 @@ def build_tree_util(root, leaf_list):
             # List of all leaf nodes to make comparison easier
             leaf_list.append(child)
             # Populate table of data at leaf node
-            tables = content.find_all('table')
-            build_tree_util_add_table(child, tables)
+            #tables = content.find_all('table')
+            tables = []
+            [tables.append([x]) for x
+             in content.find_all('table', recursive=False)]
+            [[tables.append([x]) for x
+             in y.find_all('table', recursive=False)] for y
+                 in content.find_all('div', recursive=False)]
+            if not tables:
+                tables = content.find('table')
+            if tables:
+                child.table = [[x] for y in tables for x in y if x and y]
+                for tab in child.table:
+                    tab.append(build_tree_util_add_table(tab[0]))
         else: #otherwise add child nodes
             for i in siblings:
                 child.children.append(Tree())
@@ -107,17 +118,20 @@ def build_tree_util(root, leaf_list):
         child.path = temp_list
         build_tree_util(child, leaf_list)
 
-def build_tree_util_add_table(root, tables):
+def build_tree_util_add_table(table):
     """Helper for build_tree that adds tables to nodes."""
-    root.table.append(tables)
-    for table in tables:
-        for row in table.find_all('tr'):
-            if table is not None:
-                if row.find_all('th'):
-                    col = row.find_all('th')
-                else:
-                    col = row.find_all('td')
-                root.table.append([x.string for x in col])
+    temp_table = []
+    for row in table.find_all('tr', recursive=False):
+        temp_row = []
+        for dat in row.find_all('th', recursive=False):
+            temp_row.append(dat)
+        for dat in row.find_all('td', recursive=False):
+            if dat.find('table'):
+                temp_row.append(build_tree_util_add_table(dat.find('table')))
+            else:
+                temp_row.append(dat)
+        temp_table.append(temp_row)
+    return temp_table
 
 def compare_trees(leaf_list1, leaf_list2):
     """Element-wise comparison between both trees going both directions."""
