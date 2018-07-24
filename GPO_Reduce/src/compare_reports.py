@@ -52,9 +52,12 @@ class Tree(object):
         self.path = None # List of all parent node names up to root of tree
 
 class Table(object):
-    def __init__(self, html=None, tags=None):
+    """Table object class used to store table information."""
+    # pylint: disable=too-few-public-methods
+    def __init__(self, html=None, tags=None, name=None):
         self.html = html
         self.tags = tags
+        self.name = name
         self.table = []
 
 def build_tree(soup, root, leaf_list):
@@ -96,17 +99,18 @@ def build_tree_util(root, leaf_list):
             #tables = content.find_all('table')
             tables = []
             [tables.append([x]) for x
-             in content.find_all('table', recursive=False)]
+                      in content.find_all('table', recursive=False)]
             [[tables.append([x]) for x
-             in y.find_all('table', recursive=False)] for y
-                 in content.find_all('div', recursive=False)]
+                       in y.find_all('table', recursive=False)] for y
+                      in content.find_all('div', recursive=False)]
             if not tables:
                 tables = content.find('table')
             if tables:
                 child.table = [Table(html=x, tags=x['class']) for y
-                               in tables for x in y]
+                               in tables for x in y
+                               if x and y]
                 for table in child.table:
-                    table.table.append(build_tree_util_add_table(table))
+                    table.table = build_tree_util_add_table(table)
                 # List of all leaf nodes to make comparison easier
                 leaf_list.append(child)
         else: #otherwise add child nodes
@@ -133,7 +137,7 @@ def build_tree_util_add_table(table):
             temp_row.append(dat)
         for dat in row.find_all('td', recursive=False):
             if dat.find('table'):
-                temp_row.append(Table(html=dat.find('table'), 
+                temp_row.append(Table(html=dat.find('table'),
                                       tags=dat.find('table')['class']))
                 temp_row[-1].table = build_tree_util_add_table(temp_row[-1])
             else:
@@ -142,6 +146,42 @@ def build_tree_util_add_table(table):
     return table.table
 
 def compare_trees(leaf_list1, leaf_list2):
+    # ([a1,a2,..,an],[b1,b2,...,bn]) same settings in both tables
+    temp_list = [x for x in [[y.table, z.table] for y
+                             in leaf_list1 for z
+                             in leaf_list2 if y.path == z.path]]
+    for i, j in [c for d 
+                 in [[[a, b] for a in x for b in y] for x, y
+                     in temp_list] for c in d]:
+        # i is setting in table1 j is setting in table2
+        compare_trees_util(i, j)
+    print('huere')
+        
+def compare_trees_util(i, j):
+    for row_i, row_j in [x for x in [(y,z) for y in i.table for z in j.table]]:
+        if isinstance(row_i[0], Table):
+            print(row_i[0].table)
+        else:
+            a = 0
+            '''
+            if row_i[0] in [x[0] for x in j.table]:
+                if row_i == j.table[[x[0] for x in j.table].index(row_i[0])]:
+                    # if the rows are equal
+                    print(1)
+                else: # if different
+                    print(1)
+            else: # row not in table 2
+                print(1)
+            if row_j[0] in [x[0] for x in i.table]:
+                if row_j == i.table[[x[0] for x in i.table].index(row_j[0])]:
+                    print(1)
+                else: # if different
+                    print(1)
+            else: # row not in table 1
+                print(1)
+            '''
+
+def compare_trees_old(leaf_list1, leaf_list2):
     """Element-wise comparison between both trees going both directions."""
     # pylint: disable=too-many-branches
     comparisons = []
