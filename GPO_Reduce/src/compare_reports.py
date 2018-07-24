@@ -51,6 +51,12 @@ class Tree(object):
         self.comparisons = [] # 2D list of table data comparisons
         self.path = None # List of all parent node names up to root of tree
 
+class Table(object):
+    def __init__(self, html=None, tags=None):
+        self.html = html
+        self.tags = tags
+        self.table = []
+
 def build_tree(soup, root, leaf_list):
     """Initialize tree and call recursive build function."""
     # Manually add these entries as they exist in every GPO report.
@@ -86,8 +92,6 @@ def build_tree_util(root, leaf_list):
             child.is_leaf = True
             # Remove all newline chars from inner_html to sanitize environment
             child.inner_html = str(content).replace('\n', '')
-            # List of all leaf nodes to make comparison easier
-            leaf_list.append(child)
             # Populate table of data at leaf node
             #tables = content.find_all('table')
             tables = []
@@ -99,9 +103,12 @@ def build_tree_util(root, leaf_list):
             if not tables:
                 tables = content.find('table')
             if tables:
-                child.table = [[x] for y in tables for x in y if x and y]
-                for tab in child.table:
-                    tab.append(build_tree_util_add_table(tab[0]))
+                child.table = [Table(html=x, tags=x['class']) for y
+                               in tables for x in y]
+                for table in child.table:
+                    table.table.append(build_tree_util_add_table(table))
+                # List of all leaf nodes to make comparison easier
+                leaf_list.append(child)
         else: #otherwise add child nodes
             for i in siblings:
                 child.children.append(Tree())
@@ -120,18 +127,19 @@ def build_tree_util(root, leaf_list):
 
 def build_tree_util_add_table(table):
     """Helper for build_tree that adds tables to nodes."""
-    temp_table = []
-    for row in table.find_all('tr', recursive=False):
+    for row in table.html.find_all('tr', recursive=False):
         temp_row = []
         for dat in row.find_all('th', recursive=False):
             temp_row.append(dat)
         for dat in row.find_all('td', recursive=False):
             if dat.find('table'):
-                temp_row.append(build_tree_util_add_table(dat.find('table')))
+                temp_row.append(Table(html=dat.find('table'), 
+                                      tags=dat.find('table')['class']))
+                temp_row[-1].table = build_tree_util_add_table(temp_row[-1])
             else:
                 temp_row.append(dat)
-        temp_table.append(temp_row)
-    return temp_table
+        table.table.append(temp_row)
+    return table.table
 
 def compare_trees(leaf_list1, leaf_list2):
     """Element-wise comparison between both trees going both directions."""
