@@ -162,48 +162,101 @@ def compare_trees(leaf_list1, leaf_list2):
 
 def compare_trees_util(i, j):
     """Utility function that compares items in rows and updates style."""
-    for row_i, row_j in [x for x
-                         in [(y, z) for y in i.table for z in j.table]]:
-        # Skip iteration if headers are different as they arent same table
-        if row_i[0].name == 'th' and row_j[0].name == 'th' and row_i != row_j:
-            return
-        elif (row_i[0].name == 'th' and row_j[0].name != 'th') or \
-            (row_i[0].name != 'th' and row_j[0].name == 'th'):
-            return
-        elif row_i[0].name == 'th' and row_j[0].name == 'th':
-            continue
-
-        if isinstance(row_i[0], Table) and isinstance(row_j[0], Table):
-            compare_trees_util(row_i[0], row_j[0]) #recursive call w/ subtable
+    for row_i in i.table:
+        if row_i[0].name == 'th':
+            if row_i in j.table:
+                continue # same table structure; continue to data
+            else:
+                return # different tables; skip
+        # if subtable, recursive call to func
+        if isinstance(row_i[0], Table) and \
+            any(isinstance(x[0], Table) for x in j.table):
+                [compare_trees_util(row_i[0], y[0]) for y
+                 in j.table if isinstance(y[0], Table)]
+        elif isinstance(row_i[0], Table) and \
+            not any(isinstance(x[0], Table) for x in j.table):
+            compare_trees_util(row_i[0], Table())
+        elif len(row_i) == 1: # if list of items and not table
+            if row_i[0] in j.table:
+                # exists in both
+                row_j = j.table[[x[0] for x in j.table].index(row_i[0])]
+                compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
+            else:
+                # only in 1
+                compare_trees_util_comparison_handler(1, row_i=row_i, table_j=j.table)
         else:
-            if row_i[0] in [x[0] for x in j.table]:
+            if row_i[0] in [x for y in j.table for x in y] and not row_i[0].has_attr('style'):
+                row_j = j.table[[x[0] for x in j.table].index(row_i[0])]
                 if row_i == j.table[[x[0] for x in j.table].index(row_i[0])]:
-                    for k in row_i: #rows are equal
-                        if not isinstance(k, Table):
-                            k['style'] = 'background:#82E0AA'
-                else: # if different
-                    for k in row_i:
-                        if not isinstance(k, Table):
-                            k['style'] = 'background:#F7DC6F'
-            else: # row not in table 2
-                for k in row_i:
-                    if not isinstance(k, Table):
-                        k['style'] = 'background:#F1948A'
-
-            if row_j[0] in [x[0] for x in i.table]:
+                    #same val
+                    compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
+                else:
+                    #diff val
+                    compare_trees_util_comparison_handler(3, row_i=row_i, row_j=row_j)
+            else:
+                # only in 1
+                if not row_i[0].has_attr('style'):
+                    compare_trees_util_comparison_handler(1, row_i=row_i, table_j=j.table)
+    for row_j in j.table:
+        if row_j[0].name =='th':
+            if row_j in i.table:
+                continue
+            else:
+                return
+        if isinstance(row_j[0], Table) and \
+            any(isinstance(x[0], Table) for x in i.table):
+                [compare_trees_util(row_j[0], y[0]) for y 
+                 in i.table if isinstance(y[0], Table)]
+        elif isinstance(row_j[0], Table) and \
+            not any(isinstance(x[0], Table) for x in i.table):
+            compare_trees_util(Table(), row_j[0])
+        elif len(row_j) == 1:
+            if row_j[0] in i.table:
+                #exists in both
+                row_i = i.table[[x[0] for x in i.table].index(row_j[0])]
+                compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
+            else:
+                # only in 2
+                compare_trees_util_comparison_handler(2, row_j=row_j, table_i=i.table)
+        else:
+            if row_j[0] in [x for y in i.table for x in y] and not row_j[0].has_attr('style'):
+                row_i = i.table[[x[0] for x in i.table].index(row_j[0])]
                 if row_j == i.table[[x[0] for x in i.table].index(row_j[0])]:
-                    for k in row_i: #rows are equal
-                        if not isinstance(k, Table):
-                            k['style'] = 'background:#82E0AA'
-                else: # if different
-                    for k in row_i:
-                        if not isinstance(k, Table):
-                            k['style'] = 'background:#F7DC6F'
-            else: # row not in table 1
-                i.table.append(row_j)
-                for k in i.table[-1]:
-                    if not isinstance(k, Table):
-                        k['style'] = 'background:#BB8FCE'
+                    #same val
+                    compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
+                else:
+                    #diff val
+                    compare_trees_util_comparison_handler(3, row_i=row_i, row_j=row_j)
+            else:
+                # only in 2
+                if not row_j[0].has_attr('style'):
+                    compare_trees_util_comparison_handler(2, row_j=row_j, table_i=i.table)
+    
+def compare_trees_util_comparison_handler(comparison, row_i=None, row_j=None, 
+                                          table_i=None, table_j=None):
+    if row_i and not isinstance(row_i, list):
+        row_i = [row_i]
+    if row_j and not isinstance(row_j, list):
+        row_j = [row_j]
+        
+    if comparison == 0: # same in both
+        for data in row_i:
+            data['style'] = 'background:#82E0AA'
+        for data in row_j:
+            data['style'] = 'background:#82E0AA'
+    elif comparison == 1: # exists only in 1
+        for data in row_i:
+            data['style'] = 'background:#F1948A'
+        table_j.append(row_i)
+    elif comparison == 2: # exists only in 2
+        for data in row_j:
+            data['style'] = 'background:#BB8FCE'
+        table_i.append(row_j)
+    else: # exists but different
+        for data in row_i:
+            data['style'] = 'background:#F7DC6F'
+        for data in row_j:
+            data['style'] = 'background:#F7DC6F'
 
 def update_html_general_section(soup, gpo1, gpo2):
     """Update HTML General section with color key and remove other info."""
@@ -309,62 +362,7 @@ def update_html_delete_extra_util(root, path_list):
         path_list.append(root.path)
     for child in root.children:
         update_html_delete_extra_util(child, path_list)
-'''
-def print_comparison(comparisons, outfile, quiet=False):
-    """Print comparison results for each leaf node."""
-    with open(outfile, 'a') as o_file:
-        o_file.write('================\n'
-                     'COMPARISONS ONLY\n'
-                     '================\n')
-        # Get longest string in comparisons (used for ljust)
-        for i in comparisons:
-            if not quiet:
-                print([x for x in reversed(i[0].path)])
-            o_file.write('{}\n'.format([x for x in reversed(i[0].path)]))
-            max_length = max([x for y in [
-                [[len(str(c)) for c
-                  in b] for b in a] for a in i[1:]] for x in y])[0]
-            for j in i[1:][0]:
-                temp_j = j[0]
-                j[0] = j[0].ljust(max_length + 1, '-')
-                if not quiet:
-                    print("\t", '| '.join(str(x) for x in j))
-                o_file.write('\t{}\n'.format('| '.join(str(x) for x in j)))
-                j[0] = temp_j
-            if not quiet:
-                print('')
-            o_file.write('\n')
 
-def print_tree(root, indent, last, outfile, quiet=False):
-    """
-    Print tree structure for testing and validation of tree building process.
-    Modified from:
-    stackoverflow.com/questions/1649027/how-do-i-print-out-a-tree-structure
-    """
-    out_str = ("%s +- %s\n" % (indent, root.name))
-    if not quiet:
-        print(out_str)
-    with open(outfile, 'a') as o_file:
-        o_file.write(out_str)
-    if root.is_leaf:
-        for i in root.comparisons[1:]:
-            # Longest str len in output used for padding
-            max_length = max([[len(str(x)) for x in y] for y in i])[0]
-            for j in i:
-                temp_j = j[0]
-                j[0] = j[0].ljust(max_length + 1, '-')
-                out_str = "%s    -> %s\n" % (indent, '| '.join(str(x) for x
-                                                               in j))
-                if not quiet:
-                    print(out_str)
-                with open(outfile, 'a') as o_file:
-                    o_file.write(out_str)
-                j[0] = temp_j
-    indent += "   " if last else "|  "
-    for i in range(len(root.children)):
-        print_tree(root.children[i], indent, i == len(root.children)-1,
-                   outfile, quiet)
-'''
 if __name__ == '__main__':
     # Lists used to store all leaf nodes. Makes life easier in comparison.
     LEAF_LIST1 = []
@@ -462,27 +460,3 @@ if __name__ == '__main__':
                 file.write(HTML_OUT)
         except IOError:
             print('Output file error for {}.'.format(HTML_OUTFILE))
-
-    # ================
-    # Text File Output
-    # ================
-'''
-    if not ARGS.disable_txt_output:
-        OUTFILE = ARGS.output
-        try:
-            with open(OUTFILE, 'w') as file:
-                file.write('KEY\n'
-                           'GPO1: {}\n'.format(URL1) +
-                           'GPO2: {}\n'.format(URL2) +
-                           '1: Setting exists in GPO1 but not in GPO2\n'
-                           '2: Setting exists in GPO2 but not in GPO1\n'
-                           '=: Setting is the same in both GPOs\n'
-                           '!: Setting exists in both GPOs but has '
-                           'different values\n'
-                           '________________________________________'
-                           '_______________\n')
-            print_tree(TREE1, '', True, OUTFILE, ARGS.quiet)
-            print_comparison(COMPARISON, OUTFILE, ARGS.quiet)
-        except IOError:
-            print('Output file error for {}.'.format(OUTFILE))
-'''
