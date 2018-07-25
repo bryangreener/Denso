@@ -165,98 +165,60 @@ def compare_trees_util(i, j):
     for row_i in i.table:
         if row_i[0].name == 'th':
             if row_i in j.table:
-                continue # same table structure; continue to data
+                continue
             else:
-                return # different tables; skip
-        # if subtable, recursive call to func
-        if isinstance(row_i[0], Table) and \
-            any(isinstance(x[0], Table) for x in j.table):
-                [compare_trees_util(row_i[0], y[0]) for y
+                return
+        # if table, recursive call
+        if isinstance(row_i[0], Table):
+            if any(isinstance(x[0], Table) for x in j.table):
+                [compare_trees_util(row_i[0], y[0]) for y 
                  in j.table if isinstance(y[0], Table)]
-        elif isinstance(row_i[0], Table) and \
-            not any(isinstance(x[0], Table) for x in j.table):
-            compare_trees_util(row_i[0], Table())
-        elif len(row_i) == 1: # if list of items and not table
-            if row_i[0] in j.table:
-                # exists in both
-                row_j = j.table[[x[0] for x in j.table].index(row_i[0])]
-                compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
+                for row_j in [x for x in j.table if isinstance(x[0], Table)]:
+                    del j.table[j.table.index(row_j)]
             else:
-                # only in 1
-                compare_trees_util_comparison_handler(1, row_i=row_i, table_j=j.table)
+                compare_trees_util(row_i[0], Table())
+        if row_i[0] in [x for y in j.table for x in y]:
+            row_j = j.table[[x[0] for x in j.table].index(row_i[0])]
+            if row_i == row_j:
+                compare_trees_util_comparison_handler(0, row_i)
+            else:
+                compare_trees_util_comparison_handler(3, row_i)
+            del j.table[j.table.index(row_j)]
         else:
-            if row_i[0] in [x for y in j.table for x in y] and not row_i[0].has_attr('style'):
-                row_j = j.table[[x[0] for x in j.table].index(row_i[0])]
-                if row_i == j.table[[x[0] for x in j.table].index(row_i[0])]:
-                    #same val
-                    compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
-                else:
-                    #diff val
-                    compare_trees_util_comparison_handler(3, row_i=row_i, row_j=row_j)
-            else:
-                # only in 1
-                if not row_i[0].has_attr('style'):
-                    compare_trees_util_comparison_handler(1, row_i=row_i, table_j=j.table)
+            compare_trees_util_comparison_handler(1, row_i, j.table)
+    # Clean up remaining items in table j
     for row_j in j.table:
-        if row_j[0].name =='th':
+        if row_j[0].name == 'th':
             if row_j in i.table:
                 continue
             else:
                 return
-        if isinstance(row_j[0], Table) and \
-            any(isinstance(x[0], Table) for x in i.table):
+        if isinstance(row_j[0], Table):
+            if any(isinstance(x[0], Table) for x in i.table):
                 [compare_trees_util(row_j[0], y[0]) for y 
                  in i.table if isinstance(y[0], Table)]
-        elif isinstance(row_j[0], Table) and \
-            not any(isinstance(x[0], Table) for x in i.table):
-            compare_trees_util(Table(), row_j[0])
-        elif len(row_j) == 1:
-            if row_j[0] in i.table:
-                #exists in both
-                row_i = i.table[[x[0] for x in i.table].index(row_j[0])]
-                compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
             else:
-                # only in 2
-                compare_trees_util_comparison_handler(2, row_j=row_j, table_i=i.table)
+                compare_trees_util(Table(), row_j[0])
         else:
-            if row_j[0] in [x for y in i.table for x in y] and not row_j[0].has_attr('style'):
-                row_i = i.table[[x[0] for x in i.table].index(row_j[0])]
-                if row_j == i.table[[x[0] for x in i.table].index(row_j[0])]:
-                    #same val
-                    compare_trees_util_comparison_handler(0, row_i=row_i, row_j=row_j)
-                else:
-                    #diff val
-                    compare_trees_util_comparison_handler(3, row_i=row_i, row_j=row_j)
-            else:
-                # only in 2
-                if not row_j[0].has_attr('style'):
-                    compare_trees_util_comparison_handler(2, row_j=row_j, table_i=i.table)
+            compare_trees_util_comparison_handler(2, row_j, i.table)
     
-def compare_trees_util_comparison_handler(comparison, row_i=None, row_j=None, 
-                                          table_i=None, table_j=None):
-    if row_i and not isinstance(row_i, list):
-        row_i = [row_i]
-    if row_j and not isinstance(row_j, list):
-        row_j = [row_j]
-        
-    if comparison == 0: # same in both
-        for data in row_i:
-            data['style'] = 'background:#82E0AA'
-        for data in row_j:
-            data['style'] = 'background:#82E0AA'
-    elif comparison == 1: # exists only in 1
-        for data in row_i:
-            data['style'] = 'background:#F1948A'
-        table_j.append(row_i)
-    elif comparison == 2: # exists only in 2
-        for data in row_j:
-            data['style'] = 'background:#BB8FCE'
-        table_i.append(row_j)
-    else: # exists but different
-        for data in row_i:
-            data['style'] = 'background:#F7DC6F'
-        for data in row_j:
-            data['style'] = 'background:#F7DC6F'
+def compare_trees_util_comparison_handler(comparison, row, table=None):
+    if row and not isinstance(row, list):
+        row = [row]
+    if not isinstance(row[0], Table):
+        if comparison == 0: # same in both
+            for data in row:
+                data['style'] = 'background:#82E0AA'
+        elif comparison == 1: # exists only in 1
+            for data in row:
+                data['style'] = 'background:#F1948A'
+        elif comparison == 2: # exists only in 2
+            for data in row:
+                data['style'] = 'background:#BB8FCE'
+            table.append(row)
+        else: # exists but different
+            for data in row:
+                data['style'] = 'background:#F7DC6F'
 
 def update_html_general_section(soup, gpo1, gpo2):
     """Update HTML General section with color key and remove other info."""
