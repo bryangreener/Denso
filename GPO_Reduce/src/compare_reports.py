@@ -99,14 +99,16 @@ def build_tree_util(root, leaf_list):
             #tables = content.find_all('table')
             tables = []
             [tables.append([x]) for x
-                      in content.find_all('table', recursive=False)]
+             in content.find_all('table', recursive=False)]
             [[tables.append([x]) for x
-                       in y.find_all('table', recursive=False)] for y
-                      in content.find_all('div', recursive=False)]
+              in y.find_all('table', recursive=False)] for y
+             in content.find_all('div', recursive=False)]
             if not tables:
                 tables = content.find('table')
             if tables:
-                child.table = [Table(html=x, tags=x['class']) for y
+                child.table = [Table(html=x,
+                                     tags=x['class'],
+                                     name=x.find_previous_sibling('b')) for y
                                in tables for x in y
                                if x and y]
                 for table in child.table:
@@ -146,122 +148,62 @@ def build_tree_util_add_table(table):
     return table.table
 
 def compare_trees(leaf_list1, leaf_list2):
+    """Function to compare two trees which uses util function."""
     # ([a1,a2,..,an],[b1,b2,...,bn]) same settings in both tables
     temp_list = [x for x in [[y.table, z.table] for y
                              in leaf_list1 for z
                              in leaf_list2 if y.path == z.path]]
-    for i, j in [c for d 
-                 in [[[a, b] for a in x for b in y] for x, y
+    for i, j in [c for d
+                 in [[[a, b] for a in x for b in y
+                      if a.name == b.name and a.tags == b.tags] for x, y
                      in temp_list] for c in d]:
         # i is setting in table1 j is setting in table2
         compare_trees_util(i, j)
-    print('huere')
-        
+
 def compare_trees_util(i, j):
-    for row_i, row_j in [x for x in [(y,z) for y in i.table for z in j.table]]:
-        if isinstance(row_i[0], Table):
-            print(row_i[0].table)
+    """Utility function that compares items in rows and updates style."""
+    for row_i, row_j in [x for x
+                         in [(y, z) for y in i.table for z in j.table]]:
+        # Skip iteration if headers are different as they arent same table
+        if row_i[0].name == 'th' and row_j[0].name == 'th' and row_i != row_j:
+            return
+        elif (row_i[0].name == 'th' and row_j[0].name != 'th') or \
+            (row_i[0].name != 'th' and row_j[0].name == 'th'):
+            return
+        elif row_i[0].name == 'th' and row_j[0].name == 'th':
+            continue
+
+        if isinstance(row_i[0], Table) and isinstance(row_j[0], Table):
+            compare_trees_util(row_i[0], row_j[0]) #recursive call w/ subtable
         else:
-            a = 0
-            '''
             if row_i[0] in [x[0] for x in j.table]:
                 if row_i == j.table[[x[0] for x in j.table].index(row_i[0])]:
-                    # if the rows are equal
-                    print(1)
+                    for k in row_i: #rows are equal
+                        if not isinstance(k, Table):
+                            k['style'] = 'background:#82E0AA'
                 else: # if different
-                    print(1)
+                    for k in row_i:
+                        if not isinstance(k, Table):
+                            k['style'] = 'background:#F7DC6F'
             else: # row not in table 2
-                print(1)
+                for k in row_i:
+                    if not isinstance(k, Table):
+                        k['style'] = 'background:#F1948A'
+
             if row_j[0] in [x[0] for x in i.table]:
                 if row_j == i.table[[x[0] for x in i.table].index(row_j[0])]:
-                    print(1)
+                    for k in row_i: #rows are equal
+                        if not isinstance(k, Table):
+                            k['style'] = 'background:#82E0AA'
                 else: # if different
-                    print(1)
+                    for k in row_i:
+                        if not isinstance(k, Table):
+                            k['style'] = 'background:#F7DC6F'
             else: # row not in table 1
-                print(1)
-            '''
-
-def compare_trees_old(leaf_list1, leaf_list2):
-    """Element-wise comparison between both trees going both directions."""
-    # pylint: disable=too-many-branches
-    comparisons = []
-    for i, j in [x for x in [(y, z) for y in leaf_list1 for z in leaf_list2]]:
-        if i.path == j.path: #verify using same setting
-            # Check duplicate settings based on rules below
-            #1 = setting exists in GPO1 but not in GPO2
-            #2 = setting exists in GPO2 but not in GPO1
-            #= = setting is equal in both
-            #! = setting exists in both but has different value
-            results = []
-            for row_i, row_j in [x for x
-                                 in [(y, z) for y
-                                     in i.table[1:] for z
-                                     in j.table[1:]]]:
-                if row_j[0] in [x[0] for x in i.table[1:]]:
-                    if row_j == i.table[1:][
-                            [x[0] for x
-                             in i.table[1:]].index(row_j[0])]:
-                        results.append([row_j[0], '='])
-                        update_html_tables(i.table[0], row_j, '=')
-                    else:
-                        results.append([row_j[0], '!'])
-                        update_html_tables(i.table[0], row_j, '!')
-                else:
-                    results.append([row_j[0], 1])
-                    update_html_tables(i.table[0], row_j, '1')
-                if row_i[0] in  [x[0] for x in j.table[1:]]:
-                    if row_i == j.table[1:][
-                            [x[0] for x
-                             in j.table[1:]].index(row_i[0])]:
-                        results.append([row_i[0], '='])
-                        update_html_tables(i.table[0], row_i, '=')
-                    else:
-                        results.append([row_i[0], '!'])
-                        update_html_tables(i.table[0], row_i, '!')
-                else:
-                    results.append([row_i[0], 2])
-                    update_html_tables(i.table[0], row_i, 2)
-            # Remove duplicates created by process above
-            temp = []
-            for res in results:
-                if res not in temp and res[0] is not None:
-                    temp.append(res)
-            if temp:
-                comparisons.append([i, temp])
-                i.comparisons = comparisons[-1]
-    return comparisons
-
-def update_html_tables(tables, row, comparison):
-    """Update tables in HTML with color codes."""
-    for t_row in [x for y
-                  in [table.find_all('tr') for table in tables] for x in y]:
-        if row[0] in [x.string for x in t_row.find_all('th')]:
-            return # Skip headers
-        if row[0] in [x.string for x in t_row.find_all('td')]:
-            if str(comparison) == '1':
-                t_row['style'] = 'background:#BB8FCE'
-            elif str(comparison) == '2':
-                t_row['style'] = 'background:#F1948A'
-            elif str(comparison) == '!':
-                t_row['style'] = 'background:#F7DC6F'
-            elif str(comparison) == '=':
-                t_row['style'] = 'background:#82E0AA'
-            return
-    # If row doesnt exist in html 1, add row.
-    soup = BeautifulSoup('', 'lxml')
-    new_tr = soup.new_tag('tr')
-    for i in row:
-        new_td = soup.new_tag('td')
-        if i:
-            new_td.string = i
-        else:
-            new_td.string = ''
-        new_tr.append(new_td)
-        if str(comparison) == '1':
-            new_tr['style'] = 'background:#BB8FCE'
-        elif str(comparison) == '2':
-            new_tr['style'] = 'background:#F1948A'
-    tables[0].append(new_tr)
+                i.table.append(row_j)
+                for k in i.table[-1]:
+                    if not isinstance(k, Table):
+                        k['style'] = 'background:#BB8FCE'
 
 def update_html_general_section(soup, gpo1, gpo2):
     """Update HTML General section with color key and remove other info."""
@@ -362,12 +304,12 @@ def update_html_delete_extra(soup, root1, root2):
         t_d.decompose()
 
 def update_html_delete_extra_util(root, path_list):
-    """Util which recursively builds path_list."""
+    """Utility function which recursively builds path_list."""
     if root.path:
         path_list.append(root.path)
     for child in root.children:
         update_html_delete_extra_util(child, path_list)
-
+'''
 def print_comparison(comparisons, outfile, quiet=False):
     """Print comparison results for each leaf node."""
     with open(outfile, 'a') as o_file:
@@ -422,7 +364,7 @@ def print_tree(root, indent, last, outfile, quiet=False):
     for i in range(len(root.children)):
         print_tree(root.children[i], indent, i == len(root.children)-1,
                    outfile, quiet)
-
+'''
 if __name__ == '__main__':
     # Lists used to store all leaf nodes. Makes life easier in comparison.
     LEAF_LIST1 = []
@@ -502,7 +444,8 @@ if __name__ == '__main__':
     TREE2, LEAF_LIST2 = build_tree(BODY2, ROOT, LEAF_LIST2)
 
     # Compare the two trees and update their node contents.
-    COMPARISON = compare_trees(LEAF_LIST1, LEAF_LIST2)
+    #COMPARISON = compare_trees(LEAF_LIST1, LEAF_LIST2)
+    compare_trees(LEAF_LIST1, LEAF_LIST2)
 
     # ===============
     # HTML Generation
@@ -523,7 +466,7 @@ if __name__ == '__main__':
     # ================
     # Text File Output
     # ================
-
+'''
     if not ARGS.disable_txt_output:
         OUTFILE = ARGS.output
         try:
@@ -542,3 +485,4 @@ if __name__ == '__main__':
             print_comparison(COMPARISON, OUTFILE, ARGS.quiet)
         except IOError:
             print('Output file error for {}.'.format(OUTFILE))
+'''
