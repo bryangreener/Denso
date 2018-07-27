@@ -149,6 +149,18 @@ def build_tree_util_add_table(table):
             else:
                 temp_row.append(dat)
         table.table.append(temp_row)
+        # Add paired tag for compare util
+        if len(table.table) > 1 and \
+            isinstance(table.table[-1][0], Table):
+            if isinstance(table.table[-2][0], Table):
+                table.table[-1][0].paired_tag = str(table.table[-1][0].html.previous_element)[:]
+            else:
+                if 'Comment' in table.table[0][-1]:
+                    table.table[-1][0].paired_tag = str(table.table[-2][:-1])[:]
+                else:
+                    table.table[-1][0].paired_tag = str(table.table[-2])[:]
+        elif isinstance(table.table[-1][0], Table):
+            table.table[-1][0].paired_tag = str(table.table[-1][0].html.previous_element)[:]
     return table.table
 
 def compare_trees(leaf_list1, leaf_list2):
@@ -159,9 +171,12 @@ def compare_trees(leaf_list1, leaf_list2):
                              in leaf_list2 if y.path == z.path]]
     for i, j in [c for d
                  in [[[a, b] for a in x for b in y
-                      if a.name == b.name and a.tags == b.tags] for x, y
+                      if a.name == b.name
+                      and a.tags == b.tags
+                      and a.paired_tag == b.paired_tag] for x, y
                      in temp_list] for c in d]:
         # i is setting in table1 j is setting in table2
+        print(i.table)
         compare_trees_util(i, j)
 
 def compare_trees_util(i, j):
@@ -169,82 +184,47 @@ def compare_trees_util(i, j):
     for row_i in i.table:
         if row_i[0].name == 'th':
             if row_i in j.table:
-                del j.table[j.table.index(row_i)]
+                #del j.table[j.table.index(row_i)]
                 continue #same table structure, skip header
             else:
-                return #not same table. return
+                for row in i.table[1:]:
+                    compare_trees_util_comparison_handler(1, row)
+                return #not same table. skip table
         # if table, recursive call
-        if isinstance(row_i[0], Table):
+        elif isinstance(row_i[0], Table):
             if row_i[0].paired_tag:
-                temp_j = [x[0] for x in j.table if isinstance(x[0], Table)]
-                for temp_row_j in temp_j:
-                    if row_i[0].has_attr('style'):
-                        temp_row_j['style'] = row_i[0]['style']
-                row_j = [x for x in temp_j if x.paired_tag == row_i[0].paired_tag]
+                row_j = [x for x in j.table if x[0].paired_tag == row_i[0].paired_tag]
                 if row_j:
-                    compare_trees_util(row_i[0], row_j[0])
+                    compare_trees_util(row_i[0], row_j[0][0])
                 else:
                     compare_trees_util(row_i[0], Table())
             else:
                 compare_trees_util(row_i[0], Table())
-
         elif row_i[0] in [x for y in j.table for x in y]:
-            idx_j = [x[0] for x in j.table].index(row_i[0])
-            row_j = j.table[idx_j]
-            idx_i = [x[0] for x in i.table].index(row_i[0])
-            # check if next element is table. if so, link for future use
-            if idx_i < len(i.table) - 1 and \
-                isinstance(i.table[idx_i + 1][0], Table):
-                i.table[idx_i + 1][0].paired_tag = row_i[0]
-            if idx_j < len(j.table) - 1 and \
-                isinstance(j.table[idx_j + 1][0], Table):
-                j.table[idx_j + 1][0].paired_tag = row_j[0]
-
+            row_j = j.table[[x[0] for x in j.table].index(row_i[0])]
+            # Ignore comment column if exists.
             if row_i == row_j or (row_i[:-1] == row_j[:-1] and \
                                   (i.table[0][0].name == 'th' and \
                                    'Comment' in i.table[0][-1])):
                 compare_trees_util_comparison_handler(0, row_i)
             else:
                 compare_trees_util_comparison_handler(3, row_i)
-
             del j.table[j.table.index(row_j)]
         else:
-            compare_trees_util_comparison_handler(1, row_i, j.table)
+            compare_trees_util_comparison_handler(1, row_i)
     # Clean up remaining items in table j
     for row_j in j.table:
-        if row_j[0].name == 'th':
-            if row_j in i.table:
-                continue
-            else:
-                return
-        if isinstance(row_j[0], Table):
-            if any(isinstance(x[0], Table) for x in i.table):
-                if row_j[0].paired_tag:
-                    temp_style = None
-                    row_i = None
-                    if not isinstance(row_j[0].paired_tag, str) and \
-                        row_j[0].paired_tag.has_attr('style'):
-                        #style will be different so strip it before compare
-                        temp_style = row_j[0].paired_tag['style']
-                        del row_j[0].paired_tag['style']
-                    row_i = [x[0] for x in i.table if x[0].paired_tag == row_j[0].paired_tag]
-                    if temp_style:
-                        row_j[0].paired_tag['style'] = temp_style
-                    if row_i and row_i[0]:
-                        compare_trees_util(row_i[0], row_j[0])
-                    else:
-                        compare_trees_util(Table(), row_j[0])
+        if row_j and i.table:
+            if row_j[0].name == 'th':
+                if row_j in i.table:
+                    continue
                 else:
-                    row_i = [x[0] for x in i.table if isinstance(x[0], Table)]
-                    if row_i:
-                        compare_trees_util(row_j[0], row_j[0])
-                    else:
-                        compare_trees_util(Table(), row_j[0])
+                    for row in j.table[1:]:
+                        compare_trees_util_comparison_handler(2, row, i)
+                    return
             else:
-                compare_trees_util(Table(), row_j[0])
-        else:
-            compare_trees_util_comparison_handler(2, row_j, i.table)
-    
+                compare_trees_util_comparison_handler(2, row_j, i)
+     
 def compare_trees_util_comparison_handler(comparison, row, table=None):
     if row and not isinstance(row, list):
         row = [row]
@@ -256,9 +236,14 @@ def compare_trees_util_comparison_handler(comparison, row, table=None):
             for data in row:
                 data['style'] = 'background:#F1948A'
         elif comparison == 2: # exists only in 2
+            # Need to add rows to table 1 for output
+            soup = BeautifulSoup('', 'lxml')
+            t_row = soup.new_tag('tr')
             for data in row:
                 data['style'] = 'background:#BB8FCE'
-            table.append(row)
+                t_row.append(data)
+            table.table.append(row)
+            table.html.append(t_row)
         else: # exists but different
             for data in row:
                 data['style'] = 'background:#F7DC6F'
