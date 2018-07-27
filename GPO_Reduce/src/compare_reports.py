@@ -222,6 +222,8 @@ def compare_trees_util(i, j):
                     for row in j.table[1:]:
                         compare_trees_util_comparison_handler(2, row, i)
                     return
+            elif isinstance(row_j[0], Table):
+                compare_trees_util(Table(), row_j[0])
             else:
                 compare_trees_util_comparison_handler(2, row_j, i)
      
