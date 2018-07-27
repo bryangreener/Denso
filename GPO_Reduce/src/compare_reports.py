@@ -99,11 +99,11 @@ def build_tree_util(root, leaf_list):
             # Populate table of data at leaf node
             #tables = content.find_all('table')
             tables = []
-            [tables.append([x]) for x
-             in content.find_all('table', recursive=False)]
-            [[tables.append([x]) for x
-              in y.find_all('table', recursive=False)] for y
-             in content.find_all('div', recursive=False)]
+            _ = [tables.append([x]) for x
+                 in content.find_all('table', recursive=False)]
+            _ = [[tables.append([x]) for x
+                  in y.find_all('table', recursive=False)] for y
+                 in content.find_all('div', recursive=False)]
             if not tables:
                 tables = content.find('table')
             if tables:
@@ -151,16 +151,19 @@ def build_tree_util_add_table(table):
         table.table.append(temp_row)
         # Add paired tag for compare util
         if len(table.table) > 1 and \
-            isinstance(table.table[-1][0], Table):
-            if isinstance(table.table[-2][0], Table):
-                table.table[-1][0].paired_tag = str(table.table[-1][0].html.previous_element)[:]
+            isinstance(table.table[-1][0], Table): #if current row is table
+            if isinstance(table.table[-2][0], Table): #if prev row is table
+                table.table[-1][0].paired_tag = str(
+                    table.table[-1][0].html.previous_element)[:]
             else:
-                if 'Comment' in table.table[0][-1]:
-                    table.table[-1][0].paired_tag = str(table.table[-2][:-1])[:]
+                if 'Comment' in table.table[0][-1]: #ignore comment column
+                    table.table[-1][0].paired_tag = str(
+                        table.table[-2][:-1])[:]
                 else:
                     table.table[-1][0].paired_tag = str(table.table[-2])[:]
-        elif isinstance(table.table[-1][0], Table):
-            table.table[-1][0].paired_tag = str(table.table[-1][0].html.previous_element)[:]
+        elif isinstance(table.table[-1][0], Table): #alt current row table
+            table.table[-1][0].paired_tag = str(
+                table.table[-1][0].html.previous_element)[:]
     return table.table
 
 def compare_trees(leaf_list1, leaf_list2):
@@ -169,50 +172,56 @@ def compare_trees(leaf_list1, leaf_list2):
     temp_list = [x for x in [[y.table, z.table] for y
                              in leaf_list1 for z
                              in leaf_list2 if y.path == z.path]]
+    # For each combination of like tables.
     for i, j in [c for d
                  in [[[a, b] for a in x for b in y
                       if a.name == b.name
                       and a.tags == b.tags
                       and a.paired_tag == b.paired_tag] for x, y
                      in temp_list] for c in d]:
-        # i is setting in table1 j is setting in table2
-        print(i.table)
+        # i is table in table1 j is table in table2
         compare_trees_util(i, j)
 
 def compare_trees_util(i, j):
-    """Utility function that compares items in rows and updates style."""
+    """Utility function that compares items in rows and updates style.
+    Thought process here is to go row by row recursively through table1 and
+    compare row to every row in table2, deleting table2 row matches afterwards.
+    Finally, go through all remaining rows in table2 and add to table1 with
+    color coding to show that this row doesn't exist in table1."""
+    # pylint: disable=too-many-branches
     for row_i in i.table:
         if row_i[0].name == 'th':
             if row_i in j.table:
-                #del j.table[j.table.index(row_i)]
                 continue #same table structure, skip header
             else:
-                for row in i.table[1:]:
-                    compare_trees_util_comparison_handler(1, row)
-                return #not same table. skip table
+                for row in i.table[1:]: #subtable only in table1
+                    comparison_handler(1, row)
+                return #not same table. skip
         # if table, recursive call
-        elif isinstance(row_i[0], Table):
-            if row_i[0].paired_tag:
-                row_j = [x for x in j.table if x[0].paired_tag == row_i[0].paired_tag]
-                if row_j:
+        elif isinstance(row_i[0], Table): #if row contains subtable
+            if row_i[0].paired_tag:#compare paired tags in tables
+                row_j = [x for x
+                         in j.table if x[0].paired_tag == row_i[0].paired_tag]
+                if row_j: #compare both subtables
                     compare_trees_util(row_i[0], row_j[0][0])
                 else:
                     compare_trees_util(row_i[0], Table())
-            else:
+            else: #recursive call with subtable compared to nothing
                 compare_trees_util(row_i[0], Table())
-        elif row_i[0] in [x for y in j.table for x in y]:
-            row_j = j.table[[x[0] for x in j.table].index(row_i[0])]
+        elif row_i[0] in [x for y in j.table for x in y]: #if row in table2
+            row_j = j.table[[x[0] for x in j.table].index(row_i[0])] #search
             # Ignore comment column if exists.
             if row_i == row_j or (row_i[:-1] == row_j[:-1] and \
                                   (i.table[0][0].name == 'th' and \
                                    'Comment' in i.table[0][-1])):
-                compare_trees_util_comparison_handler(0, row_i)
-            else:
-                compare_trees_util_comparison_handler(3, row_i)
+                comparison_handler(0, row_i)
+            else: #same setting different values
+                comparison_handler(3, row_i)
+            # Delete from table2 to prevent overwriting
             del j.table[j.table.index(row_j)]
-        else:
-            compare_trees_util_comparison_handler(1, row_i)
-    # Clean up remaining items in table j
+        else: # setting only exists in table1
+            comparison_handler(1, row_i)
+    # Clean up remaining items in table j. Similar to previous loop
     for row_j in j.table:
         if row_j and i.table:
             if row_j[0].name == 'th':
@@ -220,14 +229,15 @@ def compare_trees_util(i, j):
                     continue
                 else:
                     for row in j.table[1:]:
-                        compare_trees_util_comparison_handler(2, row, i)
+                        comparison_handler(2, row, i)
                     return
             elif isinstance(row_j[0], Table):
                 compare_trees_util(Table(), row_j[0])
             else:
-                compare_trees_util_comparison_handler(2, row_j, i)
-     
-def compare_trees_util_comparison_handler(comparison, row, table=None):
+                comparison_handler(2, row_j, i)
+
+def comparison_handler(comparison, row, table=None):
+    """Util function to change style of rows in input table/rows."""
     if row and not isinstance(row, list):
         row = [row]
     if not isinstance(row[0], Table) and not row[0].has_attr('style'):
@@ -360,6 +370,8 @@ if __name__ == '__main__':
     LEAF_LIST1 = []
     LEAF_LIST2 = []
 
+    INPUT_FILES = []
+    URL1, URL2, BIN = None, None, None
     # =================
     # Argument Handling
     # =================
@@ -368,15 +380,12 @@ if __name__ == '__main__':
         description='Compare two GPO html report files.')
     PARSER.add_argument('gpos', nargs=2,
                         help='Two GPO .html file paths to compare.')
-    PARSER.add_argument('-O', '--disable_txt_output', action='store_true',
-                        help='Use this option to disable txt output.')
-    PARSER.add_argument('-o', '--output',
-                        default='..\bin\\compare_reports.txt',
-                        help='Filepath in which to save results.')
+    PARSER.add_argument('-b', '--bin_folder',
+                        help='Path to bin folder containing html reports.')
     PARSER.add_argument('-F', '--disable_html_output', action='store_true',
                         help='Use this option to disable html output.')
     PARSER.add_argument('-f', '--html_output',
-                        default='..\bin\\compare_reports.html',
+                        default='..\\..\\bin\\compare_reports.html',
                         help='Filepath in which to save html output.')
     PARSER.add_argument('-q', '--quiet', action='store_true',
                         help='Suppress command line output.')
@@ -385,15 +394,27 @@ if __name__ == '__main__':
     # ================
     # Input Validation
     # ================
+    if ARGS.bin_folder:
+        if Path(ARGS.bin_folder).exists():
+            BIN = ARGS.bin_folder
+        else:
+            raise OSError('Filepath {} does not exist.'.format(
+                ARGS.bin_folder))
+    else:
+        if Path(ARGS.gpos[0]).exists():
+            URL1 = "file:" + ARGS.gpos[0]
+        else:
+            raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[0]))
+        if Path(ARGS.gpos[1]).exists():
+            URL2 = "file:" + ARGS.gpos[1]
+        else:
+            raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[1]))
 
-    if Path(ARGS.gpos[0]).exists():
-        URL1 = "file:" + ARGS.gpos[0]
-    else:
-        raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[0]))
-    if Path(ARGS.gpos[1]).exists():
-        URL2 = "file:" + ARGS.gpos[1]
-    else:
-        raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[1]))
+    # Get all files in bin folder and create all combinations for comparison.
+    INPUT_FILES = [p for p in Path(BIN).iterdir() if p.is_file()]
+    INPUT_FILES = [x for x in [(y, z) for y
+                               in INPUT_FILES for z
+                               in INPUT_FILES if y != z]]
 
     # ==================
     # BS4 Initialization
