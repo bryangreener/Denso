@@ -26,9 +26,9 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "0.9.5"
-__date__ = "2018-07-27"
-__status__ = "Development"
+__version__ = "0.9.9"
+__date__ = "2018-07-30"
+__status__ = "Testing"
 
 import argparse
 import urllib.error
