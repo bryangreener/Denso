@@ -31,8 +31,6 @@ __date__ = "2018-07-27"
 __status__ = "Development"
 
 import argparse
-import sys
-import gc
 import urllib.error
 from urllib.request import urlopen
 from pathlib import Path
@@ -170,6 +168,7 @@ def build_tree_util_add_table(table):
                 table.table[-1][0].html.previous_element)[:]
     return table.table
 
+
 def compare_trees(leaf_list1, leaf_list2):
     """Function to compare two trees which uses util function."""
     # ([a1,a2,..,an],[b1,b2,...,bn]) same settings in both tables
@@ -240,8 +239,11 @@ def compare_trees_util(i, j):
             else:
                 comparison_handler(2, row_j, i)
 
+
 def comparison_handler(comparison, row, table=None):
     """Util function to change style of rows in input table/rows."""
+    if table and not table.html.name:
+        return
     if row and not isinstance(row, list):
         row = [row]
     if not isinstance(row[0], Table) and row[0].name and \
@@ -260,6 +262,8 @@ def comparison_handler(comparison, row, table=None):
                 data['style'] = 'background:#BB8FCE'
                 t_row.append(data)
             table.table.append(row)
+            #print("HTML: {}".format(table.html))
+            #print("TROW: {}".format(t_row))
             table.html.append(t_row)
         else: # exists but different
             for data in row:
@@ -371,11 +375,6 @@ def update_html_delete_extra_util(root, path_list):
         update_html_delete_extra_util(child, path_list)
 
 if __name__ == '__main__':
-    sys.setrecursionlimit(35000)
-    # Lists used to store all leaf nodes. Makes life easier in comparison.
-    LEAF_LIST1 = []
-    LEAF_LIST2 = []
-
     INPUT_FILES = []
     URL1, URL2, BIN = None, None, None
     # =================
@@ -426,7 +425,7 @@ if __name__ == '__main__':
             URL2 = "file:" + ARGS.gpos[1]
         else:
             raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[1]))
-        
+
         INPUT_FILES = [(URL1, URL2, "{}_vs_{}.html".format(
             URL1.split('.')[0], URL2.split('.')[0]))]
     else:
@@ -435,6 +434,9 @@ if __name__ == '__main__':
                      'was specified')
 
     for URL1, URL2, HTML_OUTFILE in [x for x in INPUT_FILES]:
+        # Lists used to store all leaf nodes. Makes life easier in comparison.
+        LEAF_LIST1 = []
+        LEAF_LIST2 = []
         print("START: {}".format(HTML_OUTFILE))
         # ==================
         # BS4 Initialization
@@ -478,7 +480,6 @@ if __name__ == '__main__':
         # Compare the two trees and update their node contents.
         #COMPARISON = compare_trees(LEAF_LIST1, LEAF_LIST2)
         compare_trees(LEAF_LIST1, LEAF_LIST2)
-        #print("FINISH COMPARE")
 
         # ===============
         # HTML Generation
@@ -492,4 +493,15 @@ if __name__ == '__main__':
                 file.write(HTML_OUT)
         except IOError:
             print('Output file error for {}.'.format(HTML_OUTFILE))
-        gc.collect()
+
+        # =============
+        # Clean Up Data
+        # =============
+        # This prevents slowdown over time from variables not being GC'd
+        del SOUP1, SOUP2
+        del RESPONSE1, RESPONSE2
+        del BODY1, BODY2
+        del ROOT
+        del TREE1, TREE2
+        del LEAF_LIST1[:], LEAF_LIST1, LEAF_LIST2[:], LEAF_LIST2
+        del HTML_OUT
