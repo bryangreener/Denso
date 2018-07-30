@@ -31,6 +31,8 @@ __date__ = "2018-07-27"
 __status__ = "Development"
 
 import argparse
+import sys
+import gc
 import urllib.error
 from urllib.request import urlopen
 from pathlib import Path
@@ -111,7 +113,9 @@ def build_tree_util(root, leaf_list):
                                      tags=x['class'],
                                      name=x.find_previous_sibling('b')) for y
                                in tables for x in y
-                               if x and y]
+                               if x and y
+                               and x != '\n' and y != '\n'
+                               and x.has_attr('class')]
                 for table in child.table:
                     # Create paired tag for comparisons util
                     if isinstance(table.html.previous_element, str):
@@ -240,7 +244,8 @@ def comparison_handler(comparison, row, table=None):
     """Util function to change style of rows in input table/rows."""
     if row and not isinstance(row, list):
         row = [row]
-    if not isinstance(row[0], Table) and not row[0].has_attr('style'):
+    if not isinstance(row[0], Table) and row[0].name and \
+        not row[0].has_attr('style'):
         if comparison == 0: # same in both
             for data in row:
                 data['style'] = 'background:#82E0AA'
@@ -366,6 +371,7 @@ def update_html_delete_extra_util(root, path_list):
         update_html_delete_extra_util(child, path_list)
 
 if __name__ == '__main__':
+    sys.setrecursionlimit(35000)
     # Lists used to store all leaf nodes. Makes life easier in comparison.
     LEAF_LIST1 = []
     LEAF_LIST2 = []
@@ -378,29 +384,40 @@ if __name__ == '__main__':
 
     PARSER = argparse.ArgumentParser(
         description='Compare two GPO html report files.')
-    PARSER.add_argument('gpos', nargs=2,
-                        help='Two GPO .html file paths to compare.')
-    PARSER.add_argument('-b', '--bin_folder',
+    PARSER.add_argument('bin_folder',
                         help='Path to bin folder containing html reports.')
-    PARSER.add_argument('-F', '--disable_html_output', action='store_true',
-                        help='Use this option to disable html output.')
-    PARSER.add_argument('-f', '--html_output',
-                        default='..\\..\\bin\\compare_reports.html',
-                        help='Filepath in which to save html output.')
-    PARSER.add_argument('-q', '--quiet', action='store_true',
-                        help='Suppress command line output.')
+    PARSER.add_argument('html_output',
+                        help='Folder in which to save output reports.')
+    PARSER.add_argument('--gpos', nargs=2, default=['', ''],
+                        help='Two GPO .html file paths to compare.')
     ARGS = PARSER.parse_args()
 
     # ================
     # Input Validation
     # ================
-    if ARGS.bin_folder:
+    if ARGS.bin_folder and ARGS.html_output and ARGS.gpos[0] and ARGS.gpos[1]:
+        PARSER.error('bin_folder, html_output, and two gpos specified. Only'
+                     'specify bin_folder and html_output or specify two'
+                     'gpos. Do not specify both sets.')
+    if ARGS.bin_folder and ARGS.html_output:
         if Path(ARGS.bin_folder).exists():
             BIN = ARGS.bin_folder
+            # Get all files in bin folder and create all combinations for comparison.
+            INPUT_FILES = [p for p in Path(BIN).iterdir() if p.is_file() and
+                           str(p).split('.')[-1] == 'html']
+            INPUT_FILES = [x for x
+                           in [("file:" + str(y),
+                                "file:" + str(z),
+                                ARGS.html_output + "\\" + "{}_vs_{}.html".format(
+                                    y.name.split('.')[0],
+                                    z.name.split('.')[0]).replace(
+                                        ' ', '_')) for y
+                               in INPUT_FILES for z
+                               in INPUT_FILES if y != z]]
         else:
             raise OSError('Filepath {} does not exist.'.format(
                 ARGS.bin_folder))
-    else:
+    elif ARGS.gpos[0] and ARGS.gpos[1]:
         if Path(ARGS.gpos[0]).exists():
             URL1 = "file:" + ARGS.gpos[0]
         else:
@@ -409,63 +426,65 @@ if __name__ == '__main__':
             URL2 = "file:" + ARGS.gpos[1]
         else:
             raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[1]))
+        
+        INPUT_FILES = [(URL1, URL2, "{}_vs_{}.html".format(
+            URL1.split('.')[0], URL2.split('.')[0]))]
+    else:
+        PARSER.error('Either both bin_folder and html_output, or '
+                     'two gpo paths must be specified. Neither set '
+                     'was specified')
 
-    # Get all files in bin folder and create all combinations for comparison.
-    INPUT_FILES = [p for p in Path(BIN).iterdir() if p.is_file()]
-    INPUT_FILES = [x for x in [(y, z) for y
-                               in INPUT_FILES for z
-                               in INPUT_FILES if y != z]]
+    for URL1, URL2, HTML_OUTFILE in [x for x in INPUT_FILES]:
+        print("START: {}".format(HTML_OUTFILE))
+        # ==================
+        # BS4 Initialization
+        # ==================
+        try: #Test first html file
+            RESPONSE1 = urlopen(URL1).read()
+            SOUP1 = BeautifulSoup(RESPONSE1, 'lxml')
+        except urllib.error.HTTPError as ex:
+            print('HTTPError: ' + str(ex.code))
+        except urllib.error.URLError as ex:
+            print('URLError: ' + str(ex.reason))
+        except IOError as ex:
+            print('IOError: ' + str(ex))
 
-    # ==================
-    # BS4 Initialization
-    # ==================
-    try:
-        RESPONSE1 = urlopen(URL1).read()
-        SOUP1 = BeautifulSoup(RESPONSE1, 'lxml')
-    except urllib.error.HTTPError as ex:
-        print('HTTPError: ' + str(ex.code))
-    except urllib.error.URLError as ex:
-        print('URLError: ' + str(ex.reason))
-    except IOError as ex:
-        print('IOError: ' + str(ex))
+        try: # Test second html file
+            RESPONSE2 = urlopen(URL2).read()
+            SOUP2 = BeautifulSoup(RESPONSE2, 'lxml')
+        except urllib.error.HTTPError as ex:
+            print('HTTPError: ' + str(ex.code))
+        except urllib.error.URLError as ex:
+            print('URLError: ' + str(ex.reason))
+        except IOError as ex:
+            print('IOError: ' + str(ex))
 
-    try:
-        RESPONSE2 = urlopen(URL2).read()
-        SOUP2 = BeautifulSoup(RESPONSE2, 'lxml')
-    except urllib.error.HTTPError as ex:
-        print('HTTPError: ' + str(ex.code))
-    except urllib.error.URLError as ex:
-        print('URLError: ' + str(ex.reason))
-    except IOError as ex:
-        print('IOError: ' + str(ex))
+        BODY1 = SOUP1.find('body')
+        BODY2 = SOUP2.find('body')
 
-    BODY1 = SOUP1.find('body')
-    BODY2 = SOUP2.find('body')
+        # ===============
+        # Tree Generation
+        # ===============
+        ROOT = Tree()
+        ROOT.name = URL1 + ' v ' + URL2
+        TREE1, LEAF_LIST1 = build_tree(BODY1, ROOT, LEAF_LIST1)
+        #print("FINISH TREE 1")
 
-    # ===============
-    # Tree Generation
-    # ===============
+        ROOT = Tree()
+        ROOT.name = URL2 + ' v ' + URL1
+        TREE2, LEAF_LIST2 = build_tree(BODY2, ROOT, LEAF_LIST2)
+        #print("FINISH TREE 2")
 
-    ROOT = Tree()
-    ROOT.name = URL1 + ' v ' + URL2
-    TREE1, LEAF_LIST1 = build_tree(BODY1, ROOT, LEAF_LIST1)
+        # Compare the two trees and update their node contents.
+        #COMPARISON = compare_trees(LEAF_LIST1, LEAF_LIST2)
+        compare_trees(LEAF_LIST1, LEAF_LIST2)
+        #print("FINISH COMPARE")
 
-    ROOT = Tree()
-    ROOT.name = URL2 + ' v ' + URL1
-    TREE2, LEAF_LIST2 = build_tree(BODY2, ROOT, LEAF_LIST2)
-
-    # Compare the two trees and update their node contents.
-    #COMPARISON = compare_trees(LEAF_LIST1, LEAF_LIST2)
-    compare_trees(LEAF_LIST1, LEAF_LIST2)
-
-    # ===============
-    # HTML Generation
-    # ===============
-
-    if not ARGS.disable_html_output:
-        HTML_OUTFILE = ARGS.html_output
+        # ===============
+        # HTML Generation
+        # ===============
         try:
-            update_html_general_section(SOUP1, ARGS.gpos[0], ARGS.gpos[1])
+            update_html_general_section(SOUP1, URL1, URL2)
             update_html_delete_extra(SOUP1, TREE1, TREE2)
 
             HTML_OUT = SOUP1.prettify('utf-8')
@@ -473,3 +492,4 @@ if __name__ == '__main__':
                 file.write(HTML_OUT)
         except IOError:
             print('Output file error for {}.'.format(HTML_OUTFILE))
+        gc.collect()
