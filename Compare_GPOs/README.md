@@ -1,6 +1,6 @@
 # GPO Reduction Tool
 
-This tool compares two GPO html reports (generated using Get-GPOReport) and shows which GPO settings are duplicates and which are different. This tool is used to reduce the overhead of GPOs by removing any unnecessary settings that would cause replication times between ADs to increase.
+This tool compares two GPO html reports (generated using Get-GPOReport or from within GPMC) and shows which GPO settings are duplicates and which are different. This tool is used to reduce the overhead of GPOs by showing any unnecessary settings that would cause replication times between ADs to increase. These settings can then be removed manually.
 
 ## Built With
 
