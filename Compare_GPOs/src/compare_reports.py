@@ -98,10 +98,9 @@ def build_tree_util(root, leaf_list):
             child.inner_html = str(content).replace('\n', '')
             # Populate table of data at leaf node
             #tables = content.find_all('table')
-            tables = []
-            _ = [tables.append([x]) for x
+            tables = [x for x
                  in content.find_all('table', recursive=False)]
-            _ = [[tables.append([x]) for x
+            tables += [[x for x
                   in y.find_all('table', recursive=False)] for y
                  in content.find_all('div', recursive=False)]
             if not tables:
