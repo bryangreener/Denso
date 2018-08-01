@@ -18,7 +18,7 @@ Example:
         C:/> compare_reports.exe gpo1.html C:/Temp/gpo2.html -q -O
 
 Todo:
-    * Fix parsing of nested tables in source files.
+    * Verify results in-depth.
     * Clean up code and documentation.
     * Improve efficiency of algorithms.
 """
