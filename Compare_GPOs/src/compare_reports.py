@@ -26,9 +26,9 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "1.0.0"
-__date__ = "2018-07-30"
-__status__ = "Production"
+__version__ = "1.0.1"
+__date__ = "2018-08-01"
+__status__ = "Prototype"
 
 import re
 import argparse
