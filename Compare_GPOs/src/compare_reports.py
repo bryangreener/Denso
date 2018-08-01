@@ -30,6 +30,7 @@ __version__ = "1.0.0"
 __date__ = "2018-07-30"
 __status__ = "Production"
 
+import re
 import argparse
 import urllib.error
 from urllib.request import urlopen
@@ -99,10 +100,10 @@ def build_tree_util(root, leaf_list):
             # Populate table of data at leaf node
             #tables = content.find_all('table')
             tables = [x for x
-                 in content.find_all('table', recursive=False)]
+                      in content.find_all('table', recursive=False)]
             tables += [[x for x
-                  in y.find_all('table', recursive=False)] for y
-                 in content.find_all('div', recursive=False)]
+                        in y.find_all('table', recursive=False)] for y
+                       in content.find_all('div', recursive=False)]
             if not tables:
                 tables = content.find('table')
             if tables:
@@ -146,27 +147,19 @@ def build_tree_util_add_table(table):
             if dat.find('table'):
                 temp_row.append(Table(html=dat.find('table'),
                                       tags=dat.find('table')['class']))
+                temp_row[-1].paired_tag = pair_table(temp_row[-1].html)
                 temp_row[-1].table = build_tree_util_add_table(temp_row[-1])
             else:
                 temp_row.append(dat)
         table.table.append(temp_row)
-        # Add paired tag for compare util
-        if len(table.table) > 1 and \
-            isinstance(table.table[-1][0], Table): #if current row is table
-            if isinstance(table.table[-2][0], Table): #if prev row is table
-                table.table[-1][0].paired_tag = str(
-                    table.table[-1][0].html.previous_element)[:]
-            else:
-                if 'Comment' in table.table[0][-1]: #ignore comment column
-                    table.table[-1][0].paired_tag = str(
-                        table.table[-2][:-1])[:]
-                else:
-                    table.table[-1][0].paired_tag = str(table.table[-2])[:]
-        elif isinstance(table.table[-1][0], Table): #alt current row table
-            table.table[-1][0].paired_tag = str(
-                table.table[-1][0].html.previous_element)[:]
     return table.table
 
+def pair_table(current_row):
+    """Function to find an identifier element to identify a table."""
+    previous_row = [x for x in current_row.find_all_previous('tr')
+                    if x.find('td') and not x.find('td').find('table')][0]
+    ret = str(previous_row.find_all('td')[0])
+    return re.sub(r'style=\".*\"', '', ret)
 
 def compare_trees(leaf_list1, leaf_list2):
     """Function to compare two trees which uses util function."""
@@ -182,6 +175,8 @@ def compare_trees(leaf_list1, leaf_list2):
                       and a.paired_tag == b.paired_tag] for x, y
                      in temp_list] for c in d]:
         # i is table in table1 j is table in table2
+        if 'Site to Zone Assignment List' in str(i.html):
+            print(1)
         compare_trees_util(i, j)
 
 def compare_trees_util(i, j):
