@@ -26,7 +26,7 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 __date__ = "2018-08-01"
 __status__ = "Prototype"
 
@@ -141,24 +141,29 @@ def build_tree_util_add_table(table):
     """Helper for build_tree that adds tables to nodes."""
     for row in table.html.find_all('tr', recursive=False):
         temp_row = []
-        for dat in row.find_all('th', recursive=False):
-            temp_row.append(dat)
-        for dat in row.find_all('td', recursive=False):
-            if dat.find('table'):
-                temp_row.append(Table(html=dat.find('table'),
-                                      tags=dat.find('table')['class']))
+        for head in row.find_all('th', recursive=False):
+            temp_row.append(head)
+        for data in row.find_all('td', recursive=False):
+            if data.find('table'):
+                # Create new Table object and add to row
+                temp_row.append(Table(html=data.find('table'),
+                                      tags=data.find('table')['class']))
+                # Get pair string for table and add to Table object
                 temp_row[-1].paired_tag = pair_table(temp_row[-1].html)
+                # Recursive call to catch sub-tables
                 temp_row[-1].table = build_tree_util_add_table(temp_row[-1])
             else:
-                temp_row.append(dat)
+                temp_row.append(data)
         table.table.append(temp_row)
     return table.table
 
 def pair_table(current_row):
     """Function to find an identifier element to identify a table."""
+    # Find previous row that isnt a header and doesn't contain a table.
     previous_row = [x for x in current_row.find_all_previous('tr')
                     if x.find('td') and not x.find('td').find('table')][0]
     ret = str(previous_row.find_all('td')[0])
+    # Remove any style tags in ret to prevent incorrect mismatching.
     return re.sub(r'style=\".*\"', '', ret)
 
 def compare_trees(leaf_list1, leaf_list2):
@@ -239,7 +244,7 @@ def comparison_handler(comparison, row, table=None):
     if table and not table.html.name:
         return
     if row and not isinstance(row, list):
-        row = [row]
+        row = [row] # Prevents issues with NavigableString elements
     if not isinstance(row[0], Table) and row[0].name and \
         not row[0].has_attr('style'):
         if comparison == 0: # same in both
@@ -256,8 +261,6 @@ def comparison_handler(comparison, row, table=None):
                 data['style'] = 'background:#BB8FCE'
                 t_row.append(data)
             table.table.append(row)
-            #print("HTML: {}".format(table.html))
-            #print("TROW: {}".format(t_row))
             table.html.append(t_row)
         else: # exists but different
             for data in row:
