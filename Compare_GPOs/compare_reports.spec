@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['src\\compare_reports.py'],
-             pathex=['C:\\Users\\aabgreener\\Desktop\\git\\Denso\\GPO_Reduce'],
+             pathex=['C:\\Users\\aabgreener\\Desktop\\git\\Denso\\Compare_GPOs'],
              binaries=[],
              datas=[],
              hiddenimports=[],
