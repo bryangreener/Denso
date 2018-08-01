@@ -180,8 +180,6 @@ def compare_trees(leaf_list1, leaf_list2):
                       and a.paired_tag == b.paired_tag] for x, y
                      in temp_list] for c in d]:
         # i is table in table1 j is table in table2
-        if 'Site to Zone Assignment List' in str(i.html):
-            print(1)
         compare_trees_util(i, j)
 
 def compare_trees_util(i, j):
