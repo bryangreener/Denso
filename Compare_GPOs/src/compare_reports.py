@@ -26,13 +26,14 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "1.1.0"
-__date__ = "2018-08-01"
+__version__ = "1.2.0"
+__date__ = "2018-08-02"
 __status__ = "Prototype"
 
 import re
 import argparse
 import urllib.error
+import progressbar
 from urllib.request import urlopen
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -182,7 +183,6 @@ def compare_trees(leaf_list1, leaf_list2):
                       and a.paired_tag == b.paired_tag] for x, y
                      in temp_list] for c in d]:
         # i is table in table1 j is table in table2
-        print(i.html)
         compare_trees_util(i, j)
 
 def compare_trees_util(i, j):
@@ -431,11 +431,14 @@ if __name__ == '__main__':
                      'two gpo paths must be specified. Neither set '
                      'was specified')
 
+    #initialize progress bar
+    pbar = progressbar.ProgressBar(max_value=len(INPUT_FILES))
+    iteration = 0
     for URL1, URL2, HTML_OUTFILE in [x for x in INPUT_FILES]:
         # Lists used to store all leaf nodes. Makes life easier in comparison.
         LEAF_LIST1 = []
         LEAF_LIST2 = []
-        print("START: {}".format(HTML_OUTFILE))
+        #print("START: {}".format(HTML_OUTFILE))
         # ==================
         # BS4 Initialization
         # ==================
@@ -503,3 +506,7 @@ if __name__ == '__main__':
         del TREE1, TREE2
         del LEAF_LIST1[:], LEAF_LIST1, LEAF_LIST2[:], LEAF_LIST2
         del HTML_OUT
+
+        #Update progress bar
+        iteration += 1
+        pbar.update(iteration)
