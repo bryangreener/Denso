@@ -65,6 +65,8 @@ class Table(object):
 def build_tree(soup, root, leaf_list):
     """Initialize tree and call recursive build function."""
     # Manually add these entries as they exist in every GPO report.
+    # Possibility of these being set to Disabled however this won't affect
+    # the integrity of the report as it will just be excluded.
     c_config = soup.find('span', text='Computer Configuration (Enabled)')
     u_config = soup.find('span', text='User Configuration (Enabled)')
 
@@ -180,6 +182,7 @@ def compare_trees(leaf_list1, leaf_list2):
                       and a.paired_tag == b.paired_tag] for x, y
                      in temp_list] for c in d]:
         # i is table in table1 j is table in table2
+        print(i.html)
         compare_trees_util(i, j)
 
 def compare_trees_util(i, j):
