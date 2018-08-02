@@ -7,15 +7,10 @@ differences between these two GPOs. A text file output is also generated
 which shows the same information but in a slightly different format.
 
 Example:
-    Perform comparison and generate all forms of output including console
-    output for report files at the two relative paths specified.
+    Perform comparison for all combinations of the files in bin_folder
+    and save the resulting filed in out_folder
 
-        C:/> compare_reports.exe gpo1.html gpo2.html
-
-    Perform comparison and only generate the html file output for the
-    two report files (one relative path and one absolute path) specified.
-
-        C:/> compare_reports.exe gpo1.html C:/Temp/gpo2.html -q -O
+        C:\> compare_reports.exe C:\bin_folder C:\out_folder
 
 Todo:
     * Verify results in-depth.
