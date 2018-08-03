@@ -1,7 +1,9 @@
 ﻿function FindDuplicateOUInheritance{
     param(
         [Parameter(Mandatory=$True, HelpMessage='Location where csv will be generated.')]
-        [string]$OutPath
+		[string]$OutPath,
+		[Parameter(Mandatory=$True, HelpMessage='Distinguished name of OU to query.')]
+		[string]$OU_DN
     )
     # Check if file path exists and if csv can be opened there.
     try{
@@ -15,7 +17,7 @@
     $outobj = New-Object System.Collections.ArrayList
 
     # Query AD for all sub OUs
-    $ous = dsquery OU OU=DMMI,DC=tac,DC=densona,DC=com -limit 0
+    $ous = dsquery OU $OU_DN -limit 0
     # Parse OUs and save to array.
     foreach($i in $ous){ 
         $i = $i.Replace("`"","") # Remove quotes from items
