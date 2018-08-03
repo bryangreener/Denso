@@ -6,7 +6,7 @@ This tool compares two GPO html reports (generated using Get-GPOReport or from w
 
 ### Prerequisites
 
-This program requires a folder containing GPO html reports as input. To get these reports, you can use the following two lines in powershell.
+This program requires a folder containing GPO html reports as input. To get these reports, you can use the following command in powershell.
 
 ```Powershell
 Get-GPO -all | %{ Get-GPOReport -Name $_.DisplayName -ReportType HTML -Path "C:\bin_folder\$($_.DisplayName).html" }
