@@ -4,8 +4,6 @@ This tool is ideally run on startup for computers using the versacall system. Th
 
 ## Getting Started
 
-### Prerequisites
-
 ### Running the Program
 
 In powershell, type the following command to view examples and get more detailed information:
