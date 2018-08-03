@@ -2,11 +2,9 @@
 
 This tool compares two GPO html reports (generated using Get-GPOReport or from within GPMC) and shows which GPO settings are duplicates and which are different. This tool is used to reduce the overhead of GPOs by showing any unnecessary settings that would cause replication times between ADs to increase. These settings can then be removed manually.
 
-## Built With
+## Getting Started
 
-* Python 3 using Spyder with Anaconda
-
-## How to Use
+### Running the Program
 
 This program requires a folder containing GPO html reports as input. To get these reports, you can use the following two lines in powershell.
 
@@ -21,7 +19,11 @@ This will generate html reports in the bin_folder path for every GPO in a domain
 C:\> C:\exe_path\compare_reports.exe C:\bin_folder C:\output_folder
 ```
 
-Where output_folder is some existing folder where the comparison report files will be saved.
+Where output_folder is some existing folder where the comparison report files will be saved. The compare_reports.exe file is contained in the `dist\compare_reports\` folder in this repository and must remain in that containing folder in order to run properly.
+
+## Built With
+
+* Python 3 using Spyder with Anaconda
 
 ## Authors
 
