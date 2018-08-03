@@ -10,12 +10,16 @@ This tool compares two GPO html reports (generated using Get-GPOReport or from w
 
 This program requires a folder containing GPO html reports as input. To get these reports, you can use the following two lines in powershell.
 
+```Powershell
 $gpos = Get-GPO -all
 $gpos | %{ Get-GPOReport -Name $_.DisplayName -ReportType HTML -Path "C:\bin_folder\$($_.DisplayName).html" }
+```
 
 This will generate html reports in the bin_folder path for every GPO in a domain. From here, run the program using the following commands.
 
+```bash
 C:\> C:\exe_path\compare_reports.exe C:\bin_folder C:\output_folder
+```
 
 Where output_folder is some existing folder where the comparison report files will be saved.
 
