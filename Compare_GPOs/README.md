@@ -24,6 +24,8 @@ C:\> C:\exe_path\compare_reports.exe C:\bin_folder C:\output_folder
 
 Where output_folder is some existing folder where the comparison report files will be saved. The compare_reports.exe file is contained in the `dist\compare_reports\` folder in this repository and must remain in that containing folder in order to run properly.
 
+Depending on the number of GPO reports in the bin folder, this program can take a very long time to run. For example, if there are 50 reports in this folder then each of the 50 reports will be compared against the other 49 reports in that folder. Thus the total comparisons would be 2,450 output files.
+
 ## Built With
 
 * Python 3 using Spyder with Anaconda
