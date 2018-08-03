@@ -15,7 +15,7 @@ $gpos = Get-GPO -all
 $gpos | %{ Get-GPOReport -Name $_.DisplayName -ReportType HTML -Path "C:\bin_folder\$($_.DisplayName).html" }
 ```
 
-This will generate html reports in the bin_folder path for every GPO in a domain. From here, run the program using the following commands.
+This will generate html reports in the bin_folder path for every GPO in a domain. These need to be the only files in this folder for the program to run correctly. From here, run the program using the following command.
 
 ```bash
 C:\> C:\exe_path\compare_reports.exe C:\bin_folder C:\output_folder
