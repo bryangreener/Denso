@@ -21,21 +21,17 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "1.4.0"
-__date__ = "2018-08-08"
-__status__ = "Production"
+__version__ = "1.2.0"
+__date__ = "2018-08-02"
+__status__ = "Prototype"
 
 import re
-import os
-import threading
+import argparse
 import urllib.error
+import progressbar
 from urllib.request import urlopen
 from pathlib import Path
-from tkinter import ttk
-from tkinter import *
-from tkinter.filedialog import askdirectory
 from bs4 import BeautifulSoup
-
 
 class Tree(object):
     """Tree object class used to create n-ary tree nodes."""
@@ -168,7 +164,7 @@ def pair_table(current_row):
     # Remove any style tags in ret to prevent incorrect mismatching.
     return re.sub(r'style=\".*\"', '', ret)
 
-def compare_trees(leaf_list1, leaf_list2, body):
+def compare_trees(leaf_list1, leaf_list2):
     """Function to compare two trees which uses util function."""
     # ([a1,a2,..,an],[b1,b2,...,bn]) same settings in both tables
     temp_list = [x for x in [[y.table, z.table] for y
@@ -183,56 +179,6 @@ def compare_trees(leaf_list1, leaf_list2, body):
                      in temp_list] for c in d]:
         # i is table in table1 j is table in table2
         compare_trees_util(i, j)
-    # Mark entire sections as unique to GPO 1
-    for i in [x for x in leaf_list1 if x.path[:-1] not
-              in [y.path[:-1] for y in leaf_list2]]:
-        i.data.find_parent('div')['style'] = 'background:#F1948A'
-        for j in i.path[1:]:
-            if j not in [a for b
-                         in [[c for c in d.path] for d
-                             in leaf_list2] for a in b]:
-                div = i.data.find_all_previous(string=j)[0].find_parent('div')
-                div['style'] = 'background:#F1948A'
-    # Add in sections unique to GPO 2
-    leaf_paths = [x.path[:-1] for x in leaf_list1]
-    for i in [x for x in leaf_list2 if x.path[:-1] not in leaf_paths]:
-        i.data.find_parent('div')['style'] = 'background:#BB8FCE'
-        all_paths = [list(reversed(x.path)) for x in leaf_list1]
-        match = [0, 0]
-        rev_path = list(reversed(i.path))
-        for p_idx, p_val in enumerate(all_paths):
-            idx = 0
-            while p_val[idx] == rev_path[idx]:
-                idx += 1
-                if idx > match[0]:
-                    match[0] = idx
-                    match[1] = p_idx # unused. possibly useful in future
-        # incrementally find paths that exist up to the path that doesnt exist
-        # add to lowest path that exists
-        temp_el = body
-        tag, parent, container = None, None, None
-        # Walk through tree until at div that doesnt exist. (Spot to add)
-        for j in range(0, match[0]):
-            tag = temp_el.find(string=rev_path[j])
-            parent = tag.find_parent('div')
-            container = parent.find_next_sibling('div', class_='container')
-            temp_el = container
-        result = i.data.find_previous(string=rev_path[match[0]])
-        if result:
-            div_to_add = result.find_parent('div')
-        else:
-            div_to_add = i.data.find_parent('div')
-        div_to_add['style'] = 'background:#BB8FCE'
-        container_to_add = div_to_add.find_next_sibling('div',
-                                                        class_='container')
-        # Update all lower div styles since none are in tree
-        for j in container_to_add.find_all('span'):
-            j.find_parent('div')['style'] = 'background:#BB8FCE'
-        if container:
-            if div_to_add:
-                container.append(div_to_add)
-            if container_to_add:
-                container.append(container_to_add)
 
 def compare_trees_util(i, j):
     """Utility function that compares items in rows and updates style.
@@ -421,217 +367,141 @@ def update_html_delete_extra_util(root, path_list):
     for child in root.children:
         update_html_delete_extra_util(child, path_list)
 
-class main_app():
-    """Main application class that initializes program for comparisons."""
-    def __init__(self, bin_f, out_f, pbar, ppercent):
-        iterator = 0
-        input_files = []
-        url1, url2 = None, None
+if __name__ == '__main__':
+    INPUT_FILES = []
+    URL1, URL2, BIN = None, None, None
+    # =================
+    # Argument Handling
+    # =================
 
-        # ================
-        # Input Validation
-        # ================
-        if not Path(bin_f).exists():
-            raise OSError('Filepath {} does not exist.'.format(bin_f))
-        elif not Path(out_f).exists():
-            raise OSError('Filepath {} does not exist.'.format(out_f))
-        else:
+    PARSER = argparse.ArgumentParser(
+        description='Compare two GPO html report files.')
+    PARSER.add_argument('bin_folder',
+                        help='Path to bin folder containing html reports.')
+    PARSER.add_argument('html_output',
+                        help='Folder in which to save output reports.')
+    PARSER.add_argument('--gpos', nargs=2, default=['', ''],
+                        help='Two GPO .html file paths to compare.')
+    ARGS = PARSER.parse_args()
+
+    # ================
+    # Input Validation
+    # ================
+    if ARGS.bin_folder and ARGS.html_output and ARGS.gpos[0] and ARGS.gpos[1]:
+        PARSER.error('bin_folder, html_output, and two gpos specified. Only'
+                     'specify bin_folder and html_output or specify two'
+                     'gpos. Do not specify both sets.')
+    if ARGS.bin_folder and ARGS.html_output:
+        if Path(ARGS.bin_folder).exists():
+            BIN = ARGS.bin_folder
             # Get all files in bin folder and create all combinations for comparison.
-            input_files = [p for p in Path(bin_f).iterdir() if p.is_file() and
+            INPUT_FILES = [p for p in Path(BIN).iterdir() if p.is_file() and
                            str(p).split('.')[-1] == 'html']
-            input_files = [x for x
+            INPUT_FILES = [x for x
                            in [("file:" + str(y),
                                 "file:" + str(z),
-                                out_f + "\\" + "{}_vs_{}.html".format(
+                                ARGS.html_output + "\\" + "{}_vs_{}.html".format(
                                     y.name.split('.')[0],
                                     z.name.split('.')[0]).replace(
                                         ' ', '_')) for y
-                               in input_files for z
-                               in input_files if y != z]]
-        # Initialize progress bar.
-        pbar['maximum'] = len(input_files)
-        pbar.update_idletasks()
-        for url1, url2, html_outfile in [x for x in input_files]:
-            # Lists used to store all leaf nodes. Makes life easier in comparison.
-            leaf_list1 = []
-            leaf_list2 = []
-            # ==================
-            # BS4 Initialization
-            # ==================
-            try: #Test first html file
-                response1 = urlopen(url1).read()
-                soup1 = BeautifulSoup(response1, 'lxml')
-            except urllib.error.HTTPError as ex:
-                print('HTTPError: ' + str(ex.code))
-            except urllib.error.URLError as ex:
-                print('URLError: ' + str(ex.reason))
-            except IOError as ex:
-                print('IOError: ' + str(ex))
-
-            try: # Test second html file
-                response2 = urlopen(url2).read()
-                soup2 = BeautifulSoup(response2, 'lxml')
-            except urllib.error.HTTPError as ex:
-                print('HTTPError: ' + str(ex.code))
-            except urllib.error.URLError as ex:
-                print('URLError: ' + str(ex.reason))
-            except IOError as ex:
-                print('IOError: ' + str(ex))
-
-            body1 = soup1.find('body')
-            body2 = soup2.find('body')
-
-            # ===============
-            # Tree Generation
-            # ===============
-            root = Tree()
-            root.name = url1 + ' v ' + url2
-            tree1, leaf_list1 = build_tree(body1, root, leaf_list1)
-
-            root = Tree()
-            root.name = url2 + ' v ' + url1
-            tree2, leaf_list2 = build_tree(body2, root, leaf_list2)
-
-            # Compare the two trees and update their node contents.
-            compare_trees(leaf_list1, leaf_list2, body1)
-
-            # ===============
-            # HTML Generation
-            # ===============
-            try:
-                update_html_general_section(soup1, url1, url2)
-                html_out = soup1.prettify('utf-8')
-                with open(html_outfile, 'wb') as file:
-                    file.write(html_out)
-            except IOError:
-                print('Output file error for {}.'.format(html_outfile))
-
-            # =============
-            # Clean Up Data
-            # =============
-            # This prevents slowdown over time from variables not being GC'd
-            del soup1, soup2
-            del response1, response2
-            del body1, body2
-            del root
-            del tree1, tree2
-            del leaf_list1[:], leaf_list1, leaf_list2[:], leaf_list2
-            del html_out
-
-            # ===================
-            # PROGRESS BAR UPDATE
-            # ===================
-            iterator += 1
-            pbar['value'] = iterator
-            pbar.update_idletasks()
-            ppercent['text'] = 'File: {}/{}'.format(iterator, len(input_files))
-
-class gui_app:
-    """Class to handle GUI init and functionality"""
-    def __init__(self, root, maximum):
-        self.root = root
-        self.maximum = maximum
-        self.variable_progress = IntVar()
-        self.bin_folder = None
-        self.out_folder = None
-
-    def get_bin(self):
-        """Gets directory from user input for the bin files."""
-        Tk().withdraw()
-        dirname = askdirectory(initialdir=os.getcwd(), title='Select Folder')
-        in_var.set(dirname)
-
-    def get_out(self):
-        """Gets directory from user input for the output files."""
-        Tk().withdraw()
-        dirname = askdirectory(initialdir=os.getcwd(), title='Select Folder')
-        out_var.set(dirname)
-
-    def build_frame(self, status, name):
-        """Builds tkinter frame."""
-        self.root.wm_title('GPO Report Compare Tool')
-        self.root.resizable(0, 0)
-        # ===========
-        # INPUT FRAME
-        # ===========
-        self.frame = LabelFrame(self.root)
-        self.frame.grid(row=0, columnspan=7, sticky='W', padx=5, pady=5, ipadx=5, ipady=5)
-
-        self.in_label = Label(self.frame, text='Bin Folder:')
-        self.in_label.grid(row=0, column=0, sticky='E', padx=5, pady=2)
-
-        self.in_button = Button(self.frame, text='Browse ...', command=self.get_bin)
-        self.in_button.grid(row=0, column=8, sticky='W', padx=5, pady=2)
-
-        self.text = status
-        self.in_var = StringVar(self.root)
-        self.in_var.set(self.text)
-
-        self.in_text = Entry(self.frame, textvariable=self.in_var)
-        self.in_text.grid(row=0, column=1, columnspan=7, sticky='WE', pady=3)
-
-        self.out_label = Label(self.frame, text='Out Folder:')
-        self.out_label.grid(row=1, column=0, sticky='E', padx=5, pady=2)
-
-        self.out_button = Button(self.frame, text='Browse ...', command=self.get_out)
-        self.out_button.grid(row=1, column=8, sticky='W', padx=5, pady=2)
-
-        self.text = status
-        self.out_var = StringVar(self.root)
-        self.out_var.set(self.text)
-
-        self.out_text = Entry(self.frame, textvariable=self.out_var)
-        self.out_text.grid(row=1, column=1, columnspan=7, sticky='WE', pady=2)
-
-        # ============
-        # SUBMIT FRAME
-        # ============
-        self.submit_frame = LabelFrame(self.root)
-        self.submit_frame.grid(row=1, columnspan=7, sticky='W', padx=5, pady=5, ipadx=5, ipady=5)
-
-        self.submit_button = Button(self.submit_frame, text='Compare', command=(lambda: self.start_status(None)))
-        self.submit_button.grid(row=0, column=0, sticky='W', padx=5, pady=5)
-
-        #self.progress = Progress(self.submit_frame, row=0, column=1, columnspan=7)
-        self.progress = ttk.Progressbar(self.submit_frame, orient=HORIZONTAL, mode='determinate')
-        self.progress.grid(row=0, column=1, columnspan=7)
-        self.progress['value'] = 0
-        self.progress.update_idletasks()
-
-        self.progress_percent = Label(self.submit_frame, text='File: _/_')
-        self.progress_percent.grid(row=0, column=8, columnspan=5, padx=5, pady=5)
-
-        #self.progress.pb_clear()
-        return self.in_text, self.out_text, self.in_var, self.out_var
-
-    def start_status(self, event):
-        """ https://stackoverflow.com/questions/41371815/
-            how-can-i-stop-my-tkinter-gui-from-freezing-when-i-click-my-button
-        """
-        global THREAD
-        THREAD = threading.Thread(target=self.start_app)
-        THREAD.daemon = True
-        THREAD.start()
-        self.root.after(500, self.check_status)
-        self.submit_button['state'] = 'disabled'
-        self.submit_button['text'] = 'Working'
-
-    def check_status(self):
-        """ https://stackoverflow.com/questions/41371815/
-            how-can-i-stop-my-tkinter-gui-from-freezing-when-i-click-my-button
-        """
-        if THREAD.is_alive():
-            self.root.after(500, self.check_status)
+                               in INPUT_FILES for z
+                               in INPUT_FILES if y != z]]
         else:
-            self.submit_button['state'] = 'normal'
-            self.submit_button['text'] = 'Compare'
+            raise OSError('Filepath {} does not exist.'.format(
+                ARGS.bin_folder))
+    elif ARGS.gpos[0] and ARGS.gpos[1]:
+        if Path(ARGS.gpos[0]).exists():
+            URL1 = "file:" + ARGS.gpos[0]
+        else:
+            raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[0]))
+        if Path(ARGS.gpos[1]).exists():
+            URL2 = "file:" + ARGS.gpos[1]
+        else:
+            raise OSError('GPO file {} does not exist.'.format(ARGS.gpos[1]))
 
-    def start_app(self):
-        """Calls main class to compare files."""
-        main_app(self.in_text.get(), self.out_text.get(), self.progress, self.progress_percent)
+        INPUT_FILES = [(URL1, URL2, "{}_vs_{}.html".format(
+            URL1.split('.')[0], URL2.split('.')[0]))]
+    else:
+        PARSER.error('Either both bin_folder and html_output, or '
+                     'two gpo paths must be specified. Neither set '
+                     'was specified')
 
-if __name__ == '__main__':
-    ROOT = Tk()
-    GUI = gui_app(ROOT, 100)
-    in_dir, out_dir, in_var, out_var = GUI.build_frame('', 'Directory')
-    ROOT.mainloop()
+    #initialize progress bar
+    pbar = progressbar.ProgressBar(max_value=len(INPUT_FILES))
+    iteration = 0
+    for URL1, URL2, HTML_OUTFILE in [x for x in INPUT_FILES]:
+        # Lists used to store all leaf nodes. Makes life easier in comparison.
+        LEAF_LIST1 = []
+        LEAF_LIST2 = []
+        #print("START: {}".format(HTML_OUTFILE))
+        # ==================
+        # BS4 Initialization
+        # ==================
+        try: #Test first html file
+            RESPONSE1 = urlopen(URL1).read()
+            SOUP1 = BeautifulSoup(RESPONSE1, 'lxml')
+        except urllib.error.HTTPError as ex:
+            print('HTTPError: ' + str(ex.code))
+        except urllib.error.URLError as ex:
+            print('URLError: ' + str(ex.reason))
+        except IOError as ex:
+            print('IOError: ' + str(ex))
+
+        try: # Test second html file
+            RESPONSE2 = urlopen(URL2).read()
+            SOUP2 = BeautifulSoup(RESPONSE2, 'lxml')
+        except urllib.error.HTTPError as ex:
+            print('HTTPError: ' + str(ex.code))
+        except urllib.error.URLError as ex:
+            print('URLError: ' + str(ex.reason))
+        except IOError as ex:
+            print('IOError: ' + str(ex))
+
+        BODY1 = SOUP1.find('body')
+        BODY2 = SOUP2.find('body')
+
+        # ===============
+        # Tree Generation
+        # ===============
+        ROOT = Tree()
+        ROOT.name = URL1 + ' v ' + URL2
+        TREE1, LEAF_LIST1 = build_tree(BODY1, ROOT, LEAF_LIST1)
+        #print("FINISH TREE 1")
+
+        ROOT = Tree()
+        ROOT.name = URL2 + ' v ' + URL1
+        TREE2, LEAF_LIST2 = build_tree(BODY2, ROOT, LEAF_LIST2)
+        #print("FINISH TREE 2")
+
+        # Compare the two trees and update their node contents.
+        #COMPARISON = compare_trees(LEAF_LIST1, LEAF_LIST2)
+        compare_trees(LEAF_LIST1, LEAF_LIST2)
+
+        # ===============
+        # HTML Generation
+        # ===============
+        try:
+            update_html_general_section(SOUP1, URL1, URL2)
+            update_html_delete_extra(SOUP1, TREE1, TREE2)
+
+            HTML_OUT = SOUP1.prettify('utf-8')
+            with open(HTML_OUTFILE, 'wb') as file:
+                file.write(HTML_OUT)
+        except IOError:
+            print('Output file error for {}.'.format(HTML_OUTFILE))
+
+        # =============
+        # Clean Up Data
+        # =============
+        # This prevents slowdown over time from variables not being GC'd
+        del SOUP1, SOUP2
+        del RESPONSE1, RESPONSE2
+        del BODY1, BODY2
+        del ROOT
+        del TREE1, TREE2
+        del LEAF_LIST1[:], LEAF_LIST1, LEAF_LIST2[:], LEAF_LIST2
+        del HTML_OUT
+
+        #Update progress bar
+        iteration += 1
+        pbar.update(iteration)
