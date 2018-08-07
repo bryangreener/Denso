@@ -202,13 +202,15 @@ def compare_trees(leaf_list1, leaf_list2):
                                                in leaf_list1] for a in b]:
             idx += 1
         i.data.find_parent('div')['style'] = 'background:#BB8FCE'
-        if idx == 0:
-            print('error')
-        else:
-            container = body.find(string=list(
-                reversed(i.path))[idx-1]).find_parent('div',
-                                                      class_='container')
-            container.append(i.data.find_parent('div', class_='container'))
+        if idx > 0:
+            temp_element = body
+            for j in range(idx - 2):
+                temp_element = temp_element.find(string=list(reversed(i.path))[j]).find_previous_element('div', class_='container')
+            container = temp_element.find_next_sibling('div')
+            current_div = i.data.find_parent('div')
+            next_div = current_div.find_next_sibling('div')
+            container.append(current_div)
+            container.append(next_div)
 
 def compare_trees_util(i, j):
     """Utility function that compares items in rows and updates style.
