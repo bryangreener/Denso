@@ -21,8 +21,8 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "1.2.0"
-__date__ = "2018-08-02"
+__version__ = "1.3.0"
+__date__ = "2018-08-07"
 __status__ = "Prototype"
 
 import re
