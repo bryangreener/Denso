@@ -179,6 +179,36 @@ def compare_trees(leaf_list1, leaf_list2):
                      in temp_list] for c in d]:
         # i is table in table1 j is table in table2
         compare_trees_util(i, j)
+    # Mark entire sections as unique to GPO 1
+    for i in [x for x in leaf_list1 if x.path[:-1] not
+              in [y.path[:-1] for y in leaf_list2]]:
+        i.data.find_parent('div')['style'] = 'background:#F1948A'
+        for j in i.path[1:]:
+            if j not in [a for b
+                         in [[c for c in d.path] for d
+                             in leaf_list2] for a in b]:
+                div = i.data.find_all_previous(string=j)[0].find_parent('div')
+                div['style'] = 'background:#F1948A'
+    # Add in sections unique to GPO 2
+    body = leaf_list1[0].data.find_previous('body')
+    for i in [x for x in leaf_list2 if x.path[:-1] not
+              in [y.path[:-1] for y in leaf_list1]]:
+        idx = 0
+        while list(
+                reversed(i.path))[idx] in [a for b
+                                           in [[c for c
+                                                in list(reversed(d.path))]
+                                               for d
+                                               in leaf_list1] for a in b]:
+            idx += 1
+        i.data.find_parent('div')['style'] = 'background:#BB8FCE'
+        if idx == 0:
+            print('error')
+        else:
+            container = body.find(string=list(
+                reversed(i.path))[idx-1]).find_parent('div',
+                                                      class_='container')
+            container.append(i.data.find_parent('div', class_='container'))
 
 def compare_trees_util(i, j):
     """Utility function that compares items in rows and updates style.
@@ -482,7 +512,7 @@ if __name__ == '__main__':
         # ===============
         try:
             update_html_general_section(SOUP1, URL1, URL2)
-            update_html_delete_extra(SOUP1, TREE1, TREE2)
+            #update_html_delete_extra(SOUP1, TREE1, TREE2)
 
             HTML_OUT = SOUP1.prettify('utf-8')
             with open(HTML_OUTFILE, 'wb') as file:
