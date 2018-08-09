@@ -15,7 +15,7 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "1.4.1"
+__version__ = "1.4.2"
 __date__ = "2018-08-08"
 __status__ = "Production"
 
@@ -195,7 +195,9 @@ def compare_trees(leaf_list1, leaf_list2, body):
         rev_path = list(reversed(i.path))
         for p_idx, p_val in enumerate(all_paths):
             idx = 0
-            while p_val[idx] == rev_path[idx]:
+            while idx < len(p_val) and \
+                idx < len(rev_path) and \
+                p_val[idx] == rev_path[idx]:
                 if idx + 1 < len(rev_path):
                     idx += 1
                     if idx > match[0]:
@@ -432,7 +434,8 @@ class main_app():
         elif not Path(out_f).exists():
             raise OSError('Filepath {} does not exist.'.format(out_f))
         else:
-            # Get all files in bin folder and create all combinations for comparison.
+            # Get all files in bin folder and create all
+            # combinations for comparison.
             input_files = [p for p in Path(bin_f).iterdir() if p.is_file() and
                            str(p).split('.')[-1] == 'html']
             input_files = [x for x
@@ -448,7 +451,8 @@ class main_app():
         pbar['maximum'] = len(input_files)
         pbar.update_idletasks()
         for url1, url2, html_outfile in [x for x in input_files]:
-            # Lists used to store all leaf nodes. Makes life easier in comparison.
+            # Lists used to store all leaf nodes.
+            # Makes life easier in comparison.
             leaf_list1 = []
             leaf_list2 = []
             # ==================
@@ -551,12 +555,14 @@ class gui_app:
         # INPUT FRAME
         # ===========
         self.frame = LabelFrame(self.root)
-        self.frame.grid(row=0, columnspan=7, sticky='W', padx=5, pady=5, ipadx=5, ipady=5)
+        self.frame.grid(row=0, columnspan=7, sticky='W', padx=5,
+                        pady=5, ipadx=5, ipady=5)
 
         self.in_label = Label(self.frame, text='Bin Folder:')
         self.in_label.grid(row=0, column=0, sticky='E', padx=5, pady=2)
 
-        self.in_button = Button(self.frame, text='Browse ...', command=self.get_bin)
+        self.in_button = Button(self.frame, text='Browse ...',
+                                command=self.get_bin)
         self.in_button.grid(row=0, column=8, sticky='W', padx=5, pady=2)
 
         self.text = status
@@ -569,7 +575,8 @@ class gui_app:
         self.out_label = Label(self.frame, text='Out Folder:')
         self.out_label.grid(row=1, column=0, sticky='E', padx=5, pady=2)
 
-        self.out_button = Button(self.frame, text='Browse ...', command=self.get_out)
+        self.out_button = Button(self.frame, text='Browse ...',
+                                 command=self.get_out)
         self.out_button.grid(row=1, column=8, sticky='W', padx=5, pady=2)
 
         self.text = status
@@ -583,19 +590,22 @@ class gui_app:
         # SUBMIT FRAME
         # ============
         self.submit_frame = LabelFrame(self.root)
-        self.submit_frame.grid(row=1, columnspan=7, sticky='W', padx=5, pady=5, ipadx=5, ipady=5)
+        self.submit_frame.grid(row=1, columnspan=7, sticky='W', padx=5,
+                               pady=5, ipadx=5, ipady=5)
 
-        self.submit_button = Button(self.submit_frame, text='Compare', command=(lambda: self.start_status(None)))
+        self.submit_button = Button(self.submit_frame, text='Compare',
+                                    command=(lambda: self.start_status(None)))
         self.submit_button.grid(row=0, column=0, sticky='W', padx=5, pady=5)
 
-        #self.progress = Progress(self.submit_frame, row=0, column=1, columnspan=7)
-        self.progress = ttk.Progressbar(self.submit_frame, orient=HORIZONTAL, mode='determinate')
+        self.progress = ttk.Progressbar(self.submit_frame,
+                                        orient=HORIZONTAL, mode='determinate')
         self.progress.grid(row=0, column=1, columnspan=7)
         self.progress['value'] = 0
         self.progress.update_idletasks()
 
         self.progress_percent = Label(self.submit_frame, text='File: _/_')
-        self.progress_percent.grid(row=0, column=8, columnspan=5, padx=5, pady=5)
+        self.progress_percent.grid(row=0, column=8, columnspan=5,
+                                   padx=5, pady=5)
 
         #self.progress.pb_clear()
         return self.in_text, self.out_text, self.in_var, self.out_var
@@ -624,7 +634,8 @@ class gui_app:
 
     def start_app(self):
         """Calls main class to compare files."""
-        main_app(self.in_text.get(), self.out_text.get(), self.progress, self.progress_percent)
+        main_app(self.in_text.get(), self.out_text.get(),
+                 self.progress, self.progress_percent)
 
 if __name__ == '__main__':
     ROOT = Tk()
