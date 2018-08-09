@@ -6,12 +6,6 @@ in these two files and generates an HTML file highlighting similarities and
 differences between these two GPOs. A text file output is also generated
 which shows the same information but in a slightly different format.
 
-Example:
-    Perform comparison for all combinations of the files in bin_folder
-    and save the resulting filed in out_folder
-
-        C:\> compare_reports.exe C:\bin_folder C:\out_folder
-
 Todo:
     * Verify results in-depth.
     * Clean up code and documentation.
