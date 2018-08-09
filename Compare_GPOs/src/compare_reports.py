@@ -15,7 +15,7 @@ Todo:
 __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 __date__ = "2018-08-08"
 __status__ = "Production"
 
@@ -29,7 +29,6 @@ from tkinter import ttk
 from tkinter import *
 from tkinter.filedialog import askdirectory
 from bs4 import BeautifulSoup
-
 
 class Tree(object):
     """Tree object class used to create n-ary tree nodes."""
@@ -197,10 +196,13 @@ def compare_trees(leaf_list1, leaf_list2, body):
         for p_idx, p_val in enumerate(all_paths):
             idx = 0
             while p_val[idx] == rev_path[idx]:
-                idx += 1
-                if idx > match[0]:
-                    match[0] = idx
-                    match[1] = p_idx # unused. possibly useful in future
+                if idx + 1 < len(rev_path):
+                    idx += 1
+                    if idx > match[0]:
+                        match[0] = idx
+                        match[1] = p_idx # unused. possibly useful in future
+                else:
+                    break
         # incrementally find paths that exist up to the path that doesnt exist
         # add to lowest path that exists
         temp_el = body
