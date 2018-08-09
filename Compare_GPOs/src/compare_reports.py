@@ -16,7 +16,7 @@ __author__ = "Bryan Greener"
 __email__ = "bryan.greener@denso-diam.com"
 __license__ = "See readme in repo root for license info."
 __version__ = "1.4.2"
-__date__ = "2018-08-08"
+__date__ = "2018-08-09"
 __status__ = "Production"
 
 import re
