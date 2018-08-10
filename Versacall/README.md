@@ -32,6 +32,16 @@ C:\PS> versacall -ComputerName COMPUTER-10
 C:\PS> versacall -ServerIP 127.0.0.1 -PanelID 5
 ```
 
+### Running Program via GPO
+
+This process can be automated by setting up a GPO to run this script on logon.
+
+In `Computer Configuration -> Policies -> Administrative Templates -> System/Logon`, in the `Run these programs at user logon` setting, add the following item to run at logon:
+
+```Powershell
+powershell -command "& { . \\server_name\some_filepath\Loadversacall.ps1; versacall -Chrome }"
+```
+
 ## Folder Contents
 
 * VersacallOUs.csv
