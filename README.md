@@ -1,6 +1,6 @@
 # Denso Summer Internship 2018
 
-This repository contains programs and scripts written while working at Denso during Summer 2018. These programs focus on improving work flow for a domain administrator and speed up the process of GPO migrations by improving on the tools provided by Microsoft.
+This repository contains programs and scripts written while working at Denso during Summer 2018. These programs focus on improving work flow for a domain administrator and speed up the process of GPO migrations by improving on the tools provided by Microsoft and creating necessary tools that Microsoft failed to provide.
 
 ## Getting Started
 
