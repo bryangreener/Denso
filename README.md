@@ -8,7 +8,7 @@ This repository contains programs and scripts written while working at Denso dur
 
 The following is a guide explaining the steps taken during the migration of a GPO from one domain to another using the tools in this repository.
 
-#### Step 1: Generating the Migration Table
+#### Step 1: Generate the Migration Table
 
 1. In Group Policy Management, right click on any GPO and click `Import Settings...`.
 2. Click `Next` until you get to the `Migrating References` page. In here, click the radio button to allow you to click `New` in order to create a new migration table. 
