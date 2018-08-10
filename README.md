@@ -32,7 +32,7 @@ The following is a guide explaining the steps taken during the migration of a GP
 4. Click `Next` until you get to the `Backup Location` screen and select the folder with your backed up (and updated) GPOs.
 5. Click `Next` and select the GPO whose settings need to be imported into this new GPO.
 6. Click `Next` until you get to the `Migrating References` page.
-7. Select the migration table that you edited in Step 1 and check the `Use migration table exclusively` checkbox.
+7. Select the migration table that you edited in [Step 1](#step-1-generating-the-migration-table) and check the `Use migration table exclusively` checkbox.
 8. Click `Next` until you finish this wizard.
 
 This will have imported all of the updated settings from the old GPO into the GPO in the new domain.
