@@ -1,4 +1,4 @@
 Copyright (C) DENSO CORPORATION - All Rights Reserved
 Unauthorized copying of this file or any files in this repository, via any medium is strictly prohibited
 Proprietary and confidential
-Written by Bryan Greener <bryan.greener@denso-diam.com>, May-August 2018
+Written by Bryan Greener, May - August 2018
